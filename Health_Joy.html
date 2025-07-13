@@ -1,0 +1,2678 @@
+<html class="scroll-smooth" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1" name="viewport" />
+  <title>Health Joy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.8.0/dist/tf.min.js"></script>
+  <link
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+    rel="stylesheet"
+  />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #2d2d2d;
+      scroll-behavior: smooth;
+      padding-top: 5rem; /* space for fixed reward counter */
+    }
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #667eea;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #764ba2;
+    }
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+      outline-offset: 2px;
+      outline: 3px solid #764ba2;
+    }
+    .gradient-text {
+      background: linear-gradient(90deg, #667eea, #764ba2, #667eea);
+      background-size: 200% 200%;
+      animation: gradientShift 3s ease infinite;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    @keyframes gradientShift {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+    .floating-card {
+      box-shadow: 0 20px 40px rgba(118, 75, 162, 0.3);
+      transition: box-shadow 0.3s ease;
+    }
+    .floating-card:hover {
+      box-shadow: 0 30px 60px rgba(118, 75, 162, 0.5);
+    }
+    .chat-bubble.bot::after {
+      content: "";
+      position: absolute;
+      left: -8px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-width: 8px;
+      border-style: solid;
+      border-color: transparent #c7d2fe transparent transparent;
+    }
+    .chat-bubble.user::after {
+      content: "";
+      position: absolute;
+      right: -8px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-width: 8px;
+      border-style: solid;
+      border-color: transparent transparent transparent #5a4fcf;
+    }
+    .btn-gradient {
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      color: white;
+      font-weight: 600;
+      transition: background-position 0.4s ease;
+      background-size: 200% 200%;
+      background-position: 0% 50%;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-gradient:hover,
+    .btn-gradient:focus-visible {
+      background-position: 100% 50%;
+      outline: none;
+    }
+    .btn-gradient::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle at center, rgba(255 255 255 / 0.3), transparent 70%);
+      transform: translateX(-100%) translateY(-100%) rotate(45deg);
+      transition: transform 0.7s ease;
+      pointer-events: none;
+      border-radius: 9999px;
+    }
+    .btn-gradient:hover::before,
+    .btn-gradient:focus-visible::before {
+      transform: translateX(0) translateY(0) rotate(45deg);
+    }
+    .color-square {
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 8px rgb(118 75 162 / 0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      cursor: pointer;
+    }
+    .color-square:hover,
+    .color-square:focus-visible {
+      transform: scale(1.1);
+      box-shadow: 0 8px 16px rgb(118 75 162 / 0.6);
+      outline: none;
+    }
+    .badge-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 20px 40px rgba(118, 75, 162, 0.4);
+      transition: all 0.3s ease;
+    }
+    h1,
+    h2,
+    h3 {
+      line-height: 1.2;
+    }
+    /* Chat window with 3D cat avatar and messages */
+    #chat-window {
+      scrollbar-width: thin;
+      scrollbar-color: #667eea #f1f1f1;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      height: 420px;
+      overflow-y: auto;
+      border: 4px solid #667eea;
+      border-radius: 1.5rem;
+      padding: 1.5rem;
+      background: linear-gradient(135deg, #e0e7ff 0%, #d8b4fe 100%);
+      box-shadow: inset 0 0 15px rgba(118, 75, 162, 0.3);
+      position: relative;
+    }
+    /* Each chat message container */
+    .chat-message {
+      display: flex;
+      align-items: flex-start;
+      max-width: 80%;
+      position: relative;
+    }
+    .chat-message.bot {
+      justify-content: flex-start;
+    }
+    .chat-message.user {
+      justify-content: flex-end;
+      flex-direction: row-reverse;
+    }
+    /* Chat bubble styling */
+    .chat-bubble.bot {
+      background-color: #c7d2fe;
+      color: #2c3e91;
+      border-radius: 1.5rem 1.5rem 1.5rem 0.25rem;
+      padding: 1rem 1.25rem;
+      position: relative;
+      font-weight: 600;
+      font-size: 1rem;
+      line-height: 1.4;
+      box-shadow: 0 4px 12px rgba(118, 75, 162, 0.15);
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+    .chat-bubble.user {
+      background-color: #5a4fcf;
+      color: white;
+      border-radius: 1.5rem 1.5rem 0.25rem 1.5rem;
+      padding: 1rem 1.25rem;
+      position: relative;
+      font-weight: 600;
+      font-size: 1rem;
+      line-height: 1.4;
+      box-shadow: 0 4px 12px rgba(90, 79, 207, 0.4);
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+    /* Chat bubble tails */
+    .chat-bubble.bot::after {
+      content: "";
+      position: absolute;
+      left: -8px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-width: 8px;
+      border-style: solid;
+      border-color: transparent #c7d2fe transparent transparent;
+    }
+    .chat-bubble.user::after {
+      content: "";
+      position: absolute;
+      right: -8px;
+      top: 50%;
+      transform: translateY(-50%);
+      border-width: 8px;
+      border-style: solid;
+      border-color: transparent transparent transparent #5a4fcf;
+    }
+    /* 3D Cat avatar container */
+    .cat-avatar {
+      width: 56px;
+      height: 56px;
+      flex-shrink: 0;
+      margin-right: 12px;
+      border-radius: 9999px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(118, 75, 162, 0.5);
+      background: white;
+      position: relative;
+      user-select: none;
+    }
+    /* 3D Cat image styling */
+    .cat-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 9999px;
+      filter: drop-shadow(0 0 3px rgba(118, 75, 162, 0.4));
+      transition: transform 0.3s ease;
+    }
+    .cat-avatar:hover img,
+    .cat-avatar:focus-within img {
+      transform: scale(1.05) rotateY(10deg) rotateX(5deg);
+      filter: drop-shadow(0 0 8px rgba(118, 75, 162, 0.7));
+    }
+    /* Responsive adjustments */
+    @media (max-width: 640px) {
+      #chat-window {
+        height: 360px;
+        padding: 1rem;
+      }
+      .cat-avatar {
+        width: 48px;
+        height: 48px;
+        margin-right: 8px;
+      }
+      .chat-bubble.bot,
+      .chat-bubble.user {
+        font-size: 0.9rem;
+        padding: 0.75rem 1rem;
+      }
+    }
+    /* Reward counter styling */
+    #reward-counter {
+      position: fixed;
+      bottom: 1rem;
+      right: 1rem;
+      background: linear-gradient(135deg, #764ba2, #667eea);
+      color: white;
+      font-weight: 700;
+      padding: 0.75rem 1.5rem;
+      border-radius: 9999px;
+      box-shadow: 0 8px 20px rgba(118, 75, 162, 0.6);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      z-index: 1000;
+      user-select: none;
+      cursor: pointer;
+      font-size: 1.125rem;
+      max-width: 280px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: box-shadow 0.3s ease;
+    }
+    #reward-counter:hover,
+    #reward-counter:focus {
+      box-shadow: 0 0 15px 3px #facc15;
+      outline: none;
+    }
+    #reward-counter i {
+      font-size: 1.5rem;
+      color: #facc15;
+      text-shadow: 0 0 6px #facc15;
+    }
+    /* Badge popup */
+    #badge-popup {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(100%);
+      background: linear-gradient(135deg, #764ba2, #667eea);
+      color: white;
+      padding: 1rem 2rem;
+      border-radius: 1.5rem;
+      box-shadow: 0 8px 30px rgba(118, 75, 162, 0.8);
+      font-weight: 700;
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      z-index: 1100;
+      user-select: none;
+    }
+    #badge-popup.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #badge-popup img {
+      width: 48px;
+      height: 48px;
+      border-radius: 9999px;
+      box-shadow: 0 0 10px #facc15;
+    }
+    /* Login/Register page styles */
+    #auth-page {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      padding: 1rem;
+      overflow-y: auto;
+    }
+    #auth-container {
+      background: white;
+      border-radius: 2rem;
+      max-width: 400px;
+      width: 100%;
+      padding: 2rem 3rem;
+      box-shadow: 0 20px 40px rgba(118, 75, 162, 0.4);
+      text-align: center;
+      position: relative;
+    }
+    #auth-container h2 {
+      font-size: 2.25rem;
+      font-weight: 700;
+      color: #764ba2;
+      margin-bottom: 1.5rem;
+      user-select: none;
+    }
+    #auth-container form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    #auth-container input {
+      padding: 0.75rem 1rem;
+      border-radius: 9999px;
+      border: 2px solid #764ba2;
+      font-size: 1rem;
+      outline-offset: 2px;
+      transition: border-color 0.3s ease;
+    }
+    #auth-container input:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 8px #667eea;
+    }
+    #auth-container button {
+      margin-top: 1rem;
+    }
+    #auth-toggle {
+      margin-top: 1rem;
+      color: #764ba2;
+      cursor: pointer;
+      font-weight: 600;
+      user-select: none;
+      text-decoration: underline;
+    }
+    #auth-error {
+      color: #dc2626;
+      font-weight: 600;
+      margin-top: 0.5rem;
+      min-height: 1.25rem;
+    }
+    /* Interactive badge pulse */
+    .badge-card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      cursor: pointer;
+      user-select: none;
+    }
+    .badge-card.pulse {
+      animation: pulseBadge 1.5s infinite;
+    }
+    @keyframes pulseBadge {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 20px 40px rgba(118, 75, 162, 0.4);
+      }
+      50% {
+        transform: scale(1.1);
+        box-shadow: 0 30px 60px rgba(118, 75, 162, 0.7);
+      }
+    }
+    /* Explore Hospital modal */
+    #hospital-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1500;
+      padding: 1rem;
+    }
+    #hospital-modal.active {
+      display: flex;
+    }
+    #hospital-modal-content {
+      background: white;
+      border-radius: 1.5rem;
+      max-width: 600px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 1.5rem 2rem;
+      box-shadow: 0 20px 40px rgba(118, 75, 162, 0.5);
+      position: relative;
+    }
+    #hospital-modal-content iframe {
+      width: 100%;
+      height: 360px;
+      border-radius: 1rem;
+      margin-bottom: 1rem;
+      border: none;
+    }
+    #hospital-modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: transparent;
+      border: none;
+      font-size: 1.5rem;
+      color: #764ba2;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    /* Mini quiz styles */
+    #mini-quiz {
+      background: #f0f4ff;
+      border-radius: 1.5rem;
+      padding: 2rem;
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    #mini-quiz h3 {
+      font-weight: 700;
+      color: #4c51bf;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    #mini-quiz button {
+      margin-top: 1rem;
+    }
+    /* Physiotherapy gifs and audio */
+    .exercise-item {
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.3s ease;
+      outline-offset: 4px;
+      outline: none;
+    }
+    .exercise-item:hover,
+    .exercise-item:focus {
+      transform: scale(1.05);
+      outline: none;
+      box-shadow: 0 0 15px 3px #667eea;
+      border-radius: 1rem;
+    }
+    .exercise-gif {
+      max-width: 100%;
+      border-radius: 1rem;
+      margin-top: 1rem;
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+    }
+    /* Short stories */
+    .story-card {
+      background: #e0e7ff;
+      border-radius: 1.5rem;
+      padding: 1rem;
+      box-shadow: 0 10px 30px rgba(118, 75, 162, 0.2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      max-width: 350px;
+      margin: 0 auto;
+      cursor: pointer;
+      outline-offset: 4px;
+      outline: none;
+    }
+    .story-card:hover,
+    .story-card:focus {
+      box-shadow: 0 0 20px 4px #667eea;
+      transform: scale(1.05);
+      border-radius: 1rem;
+    }
+    .story-card img {
+      width: 100%;
+      border-radius: 1rem;
+      object-fit: cover;
+      max-height: 200px;
+    }
+    .story-card p {
+      color: #4c51bf;
+      font-weight: 600;
+      text-align: center;
+    }
+    /* Warning text in rewards */
+    #rewards-warning {
+      color: #dc2626;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 1rem;
+      font-size: 1.125rem;
+    }
+    /* Story modal */
+    #story-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1600;
+      padding: 1rem;
+    }
+    #story-modal.active {
+      display: flex;
+    }
+    #story-modal-content {
+      background: white;
+      border-radius: 1.5rem;
+      max-width: 700px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 2rem;
+      box-shadow: 0 20px 40px rgba(118, 75, 162, 0.7);
+      position: relative;
+    }
+    #story-modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: transparent;
+      border: none;
+      font-size: 2rem;
+      color: #764ba2;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    #story-modal-content img {
+      width: 100%;
+      border-radius: 1rem;
+      margin-bottom: 1rem;
+      object-fit: cover;
+    }
+    #story-modal-content p {
+      font-size: 1.125rem;
+      color: #4c51bf;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen">
+  <!-- Reward Counter -->
+  <div id="reward-counter" aria-live="polite" aria-atomic="true" role="region" tabindex="0" title="Your current reward points and badges">
+    <i class="fas fa-gift"></i>
+    <span id="points-display">Points: 0</span>
+    <span id="badges-display" class="ml-4 flex items-center gap-2" aria-label="Badges earned"></span>
+  </div>
+
+  <!-- Badge Popup -->
+  <div id="badge-popup" role="alert" aria-live="assertive" aria-atomic="true" tabindex="0" aria-hidden="true">
+    <img alt="New badge earned" id="badge-popup-img" src="" />
+    <span id="badge-popup-text"></span>
+  </div>
+
+  <!-- Authentication Page -->
+  <section id="auth-page" aria-modal="true" role="dialog" aria-labelledby="auth-title" aria-describedby="auth-desc">
+    <div id="auth-container">
+      <h2 id="auth-title" tabindex="0">Welcome to Health Joy</h2>
+      <form id="auth-form" novalidate>
+        <input
+          type="text"
+          id="email"
+          name="email"
+          placeholder="Username"
+          autocomplete="username"
+          required
+          aria-required="true"
+          spellcheck="false"
+        />
+        <input
+          type="password"
+          id="password"
+          name="password"
+          placeholder="Password"
+          autocomplete="current-password"
+          required
+          aria-required="true"
+          minlength="4"
+        />
+        <div id="auth-error" class="text-red-600 text-sm min-h-[1.25rem]" aria-live="polite" role="alert"></div>
+        <button type="submit" class="btn-gradient rounded-3xl px-12 py-4 text-2xl shadow-lg hover:shadow-xl focus-visible:ring-4 focus-visible:ring-indigo-500">
+          Login
+        </button>
+      </form>
+      <button id="forgot-password-btn" class="mt-4 text-indigo-700 underline font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-400 rounded" type="button">
+        Forgot Password?
+      </button>
+      <p class="mt-6 text-indigo-600 text-sm italic lowercase select-none">here healing meets joy</p>
+    </div>
+  </section>
+
+  <!-- Main App -->
+  <header
+    class="sticky top-0 z-50 bg-white/90 backdrop-blur-md shadow-md border-b border-indigo-300"
+    id="main-header"
+    aria-hidden="true"
+  >
+    <div
+      class="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 flex items-center justify-between h-20"
+    >
+      <h1
+        class="text-3xl font-extrabold gradient-text tracking-wide select-none"
+        tabindex="0"
+      >
+        Health Joy 
+      </h1>
+      <nav
+        aria-label="Primary Navigation"
+        class="hidden md:flex space-x-6 font-semibold text-indigo-700 tracking-wide"
+        role="navigation"
+      >
+        <button
+          aria-controls="bot"
+          aria-selected="false"
+          class="tab-btn px-4 py-2 rounded-lg transition-colors duration-300 focus-visible:ring-4 focus-visible:ring-indigo-400 flex items-center space-x-2"
+          data-tab="bot"
+          id="tab-bot"
+          role="tab"
+          tabindex="-1"
+        >
+          <img
+            alt="Doctor cat avatar with stethoscope and friendly smile"
+            class="w-6 h-6 rounded-full"
+            height="64"
+            src="https://storage.googleapis.com/a1aa/image/9f7f9809-02ae-4443-1992-a82658da3e6a.jpg"
+            width="64"
+          />
+          <span>Doctor Cat</span>
+        </button>
+        <button
+          aria-controls="hospital"
+          aria-selected="false"
+          class="tab-btn px-4 py-2 rounded-lg transition-colors duration-300 focus-visible:ring-4 focus-visible:ring-indigo-400 flex items-center space-x-2"
+          data-tab="hospital"
+          id="tab-hospital"
+          role="tab"
+          tabindex="-1"
+        >
+          <i class="fas fa-hospital mr-1"></i>
+          <span>Explore Hospital</span>
+        </button>
+        <button
+          aria-controls="games"
+          aria-selected="false"
+          class="tab-btn px-4 py-2 rounded-lg transition-colors duration-300 focus-visible:ring-4 focus-visible:ring-indigo-400 flex items-center space-x-2"
+          data-tab="games"
+          id="tab-games"
+          role="tab"
+          tabindex="-1"
+        >
+          <i class="fas fa-gamepad mr-1"></i>
+          <span>Stress Games</span>
+        </button>
+        <button
+          aria-controls="rewards"
+          aria-selected="false"
+          class="tab-btn px-4 py-2 rounded-lg transition-colors duration-300 focus-visible:ring-4 focus-visible:ring-indigo-400 flex items-center space-x-2"
+          data-tab="rewards"
+          id="tab-rewards"
+          role="tab"
+          tabindex="-1"
+        >
+          <i class="fas fa-award mr-1"></i>
+          <span>Rewards &amp; Badges</span>
+        </button>
+        <button
+          aria-controls="exercise"
+          aria-selected="false"
+          class="tab-btn px-4 py-2 rounded-lg transition-colors duration-300 focus-visible:ring-4 focus-visible:ring-indigo-400 flex items-center space-x-2"
+          data-tab="exercise"
+          id="tab-exercise"
+          role="tab"
+          tabindex="-1"
+        >
+          <i class="fas fa-dumbbell mr-1"></i>
+          <span>Exercise &amp; Motivation</span>
+        </button>
+        <button
+          aria-controls="quiz"
+          aria-selected="false"
+          class="tab-btn px-4 py-2 rounded-lg transition-colors duration-300 focus-visible:ring-4 focus-visible:ring-indigo-400 flex items-center space-x-2"
+          data-tab="quiz"
+          id="tab-quiz"
+          role="tab"
+          tabindex="-1"
+        >
+          <i class="fas fa-question-circle mr-1"></i>
+          <span>Self Quiz</span>
+        </button>
+      </nav>
+      <button
+        aria-expanded="false"
+        aria-label="Toggle menu"
+        class="md:hidden text-indigo-600 hover:text-indigo-800 focus:outline-none focus:ring-4 focus:ring-indigo-400 rounded"
+        id="mobile-menu-btn"
+      >
+        <i class="fas fa-bars fa-lg"></i>
+      </button>
+    </div>
+    <nav
+      aria-label="Mobile Navigation"
+      class="md:hidden hidden bg-white/95 backdrop-blur-md border-t border-indigo-300"
+      id="mobile-menu"
+      role="navigation"
+    >
+      <button
+        aria-controls="bot"
+        aria-selected="false"
+        class="tab-btn block w-full text-left px-6 py-4 border-b border-indigo-200 font-semibold text-indigo-700 hover:bg-indigo-100 focus-visible:ring-4 focus-visible:ring-indigo-400 flex items-center space-x-3"
+        data-tab="bot"
+        role="tab"
+        tabindex="-1"
+      >
+        <img
+          alt="Doctor cat avatar with stethoscope and friendly smile"
+          class="w-6 h-6 rounded-full"
+          height="64"
+          src="https://storage.googleapis.com/a1aa/image/9f7f9809-02ae-4443-1992-a82658da3e6a.jpg"
+          width="64"
+        />
+        <span>Doctor Cat</span>
+      </button>
+      <button
+        aria-controls="hospital"
+        aria-selected="false"
+        class="tab-btn block w-full text-left px-6 py-4 border-b border-indigo-200 font-semibold text-indigo-700 hover:bg-indigo-100 focus-visible:ring-4 focus-visible:ring-indigo-400 flex items-center space-x-3"
+        data-tab="hospital"
+        role="tab"
+        tabindex="-1"
+      >
+        <i class="fas fa-hospital mr-2"></i>
+        <span>Explore Hospital</span>
+      </button>
+      <button
+        aria-controls="games"
+        aria-selected="false"
+        class="tab-btn block w-full text-left px-6 py-4 border-b border-indigo-200 font-semibold text-indigo-700 hover:bg-indigo-100 focus-visible:ring-4 focus-visible:ring-indigo-400 flex items-center space-x-3"
+        data-tab="games"
+        role="tab"
+        tabindex="-1"
+      >
+        <i class="fas fa-gamepad mr-2"></i>
+        <span>Stress Games</span>
+      </button>
+      <button
+        aria-controls="rewards"
+        aria-selected="false"
+        class="tab-btn block w-full text-left px-6 py-4 border-b border-indigo-200 font-semibold text-indigo-700 hover:bg-indigo-100 focus-visible:ring-4 focus-visible:ring-indigo-400 flex items-center space-x-3"
+        data-tab="rewards"
+        role="tab"
+        tabindex="-1"
+      >
+        <i class="fas fa-award mr-2"></i>
+        <span>Rewards &amp; Badges</span>
+      </button>
+      <button
+        aria-controls="exercise"
+        aria-selected="false"
+        class="tab-btn block w-full text-left px-6 py-4 border-b border-indigo-200 font-semibold text-indigo-700 hover:bg-indigo-100 focus-visible:ring-4 focus-visible:ring-indigo-400 flex items-center space-x-3"
+        data-tab="exercise"
+        role="tab"
+        tabindex="-1"
+      >
+        <i class="fas fa-dumbbell mr-2"></i>
+        <span>Exercise &amp; Motivation</span>
+      </button>
+      <button
+        aria-controls="quiz"
+        aria-selected="false"
+        class="tab-btn block w-full text-left px-6 py-4 font-semibold text-indigo-700 hover:bg-indigo-100 focus-visible:ring-4 focus-visible:ring-indigo-400 flex items-center space-x-3"
+        data-tab="quiz"
+        role="tab"
+        tabindex="-1"
+      >
+        <i class="fas fa-question-circle mr-2"></i>
+        <span>Self Quiz</span>
+      </button>
+    </nav>
+  </header>
+
+  <main class="flex-grow max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-8" id="app-main" aria-hidden="true" tabindex="-1">
+    <!-- Bot Section -->
+    <section
+      aria-label="Health Assistant Bot"
+      class="tab-content hidden bg-white rounded-3xl shadow-2xl p-8 max-w-4xl mx-auto flex flex-col"
+      id="bot"
+      role="tabpanel"
+      tabindex="0"
+    >
+      <h2
+        class="text-4xl font-extrabold text-indigo-700 mb-6 gradient-text select-none"
+        tabindex="0"
+      >
+        Doctor Cat
+      </h2>
+      <div
+        aria-atomic="false"
+        aria-live="polite"
+        aria-relevant="additions"
+        class="flex flex-col space-y-6 h-[420px] overflow-y-auto border-4 border-indigo-300 rounded-3xl p-6 bg-gradient-to-br from-indigo-50 to-purple-50 shadow-inner"
+        id="chat-window"
+        role="log"
+        style="position: relative;"
+        tabindex="0"
+      >
+        <!-- 3D Cat avatar fixed bottom-left -->
+        <img
+          alt="3D stylized cat doctor avatar with stethoscope, friendly expression, and soft purple-blue lighting"
+          aria-hidden="true"
+          class="cat-avatar"
+          height="64"
+          src="https://storage.googleapis.com/a1aa/image/cefd57eb-ec97-4807-85ca-960024e36f61.jpg"
+          style="position: absolute; bottom: 1.5rem; left: 1.5rem; z-index: 10; pointer-events: none; user-select: none;"
+          width="64"
+        />
+      </div>
+      <form
+        aria-label="Send message to Doctor Cat Bot"
+        class="mt-6 flex space-x-4"
+        id="chat-form"
+      >
+        <input
+          aria-required="true"
+          autocomplete="off"
+          class="flex-grow rounded-3xl border-2 border-indigo-300 px-6 py-3 text-lg focus:outline-none focus:ring-4 focus:ring-indigo-400 transition-shadow shadow-md"
+          id="chat-input"
+          placeholder="Ask Doctor Cat something..."
+          type="text"
+        />
+        <button
+          aria-label="Send message"
+          class="btn-gradient rounded-3xl px-8 py-3 text-lg shadow-lg hover:shadow-xl focus-visible:ring-4 focus-visible:ring-indigo-500 flex items-center space-x-2"
+          type="submit"
+        >
+          <i class="fas fa-paper-plane"></i>
+          <span>Send</span>
+        </button>
+      </form>
+    </section>
+
+    <!-- Explore Hospital Section -->
+    <section
+      aria-label="Explore Your Hospital"
+      class="tab-content hidden bg-white rounded-3xl shadow-2xl p-8 max-w-7xl mx-auto"
+      id="hospital"
+      role="tabpanel"
+      tabindex="0"
+    >
+      <h2
+        class="text-4xl font-extrabold text-indigo-700 mb-10 gradient-text select-none"
+        tabindex="0"
+      >
+        Explore Your Hospital
+      </h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
+        <article
+          aria-label="Lobby and Reception"
+          class="floating-card rounded-3xl overflow-hidden bg-gradient-to-tr from-indigo-100 to-purple-100 hover:from-indigo-200 hover:to-purple-200 transition-colors duration-300 cursor-pointer"
+          role="button"
+          tabindex="0"
+          data-area="lobby"
+        >
+          <img
+            alt="Hospital lobby with reception desk and patients waiting"
+            class="w-full h-56 object-cover rounded-t-3xl shadow-inner"
+            height="400"
+            loading="lazy"
+            src="https://hmcarchitects.com/wp-content/uploads/1.jpeg-9-1280x713.jpg"
+            width="600"
+          />
+          <div class="p-6">
+            <h3 class="font-extrabold text-indigo-700 text-2xl mb-3">
+              Lobby &amp; Reception
+            </h3>
+            <p class="text-indigo-900 text-lg leading-relaxed">
+              Welcome area with comfortable seating and information desk.
+            </p>
+          </div>
+        </article>
+        <article
+          aria-label="Patient Wards"
+          class="floating-card rounded-3xl overflow-hidden bg-gradient-to-tr from-indigo-100 to-purple-100 hover:from-indigo-200 hover:to-purple-200 transition-colors duration-300 cursor-pointer"
+          role="button"
+          tabindex="0"
+          data-area="wards"
+        >
+          <img
+            alt="Hospital ward with beds and medical equipment"
+            class="w-full h-56 object-cover rounded-t-3xl shadow-inner"
+            height="400"
+            loading="lazy"
+            src="https://dm1zcrsul8wju.cloudfront.net/sites/rcn_nspace/files/styles/full_width_banner/public/Number_of_patients_on_mixed_sex_NHS_wards_on_the_rise_tile_Alamy-C8MPE1_0.jpg?itok=R9is70Gw"
+            width="600"
+          />
+          <div class="p-6">
+            <h3 class="font-extrabold text-indigo-700 text-2xl mb-3">
+              Patient Wards
+            </h3>
+            <p class="text-indigo-900 text-lg leading-relaxed">
+              Rooms where patients receive care and rest.
+            </p>
+          </div>
+        </article>
+        <article
+          aria-label="Physiotherapy Room"
+          class="floating-card rounded-3xl overflow-hidden bg-gradient-to-tr from-indigo-100 to-purple-100 hover:from-indigo-200 hover:to-purple-200 transition-colors duration-300 cursor-pointer"
+          role="button"
+          tabindex="0"
+          data-area="physiotherapy"
+        >
+          <img
+            alt="Hospital physiotherapy room with exercise equipment and patients exercising"
+            class="w-full h-56 object-cover rounded-t-3xl shadow-inner"
+            height="400"
+            loading="lazy"
+            src="https://media.istockphoto.com/id/498715206/photo/physical-therapy-room.jpg?s=612x612&w=0&k=20&c=nK0rMKD9oCk7nPi_OR9FrHJ4USzdy79kTxhczBaE-wE="
+            width="600"
+          />
+          <div class="p-6">
+            <h3 class="font-extrabold text-indigo-700 text-2xl mb-3">
+              Physiotherapy Room
+            </h3>
+            <p class="text-indigo-900 text-lg leading-relaxed">
+              Area for physical therapy and rehabilitation exercises.
+            </p>
+          </div>
+        </article>
+        <article
+          aria-label="Cafeteria"
+          class="floating-card rounded-3xl overflow-hidden bg-gradient-to-tr from-indigo-100 to-purple-100 hover:from-indigo-200 hover:to-purple-200 transition-colors duration-300 cursor-pointer"
+          role="button"
+          tabindex="0"
+          data-area="cafeteria"
+        >
+          <img
+            alt="Hospital cafeteria with healthy food options and patients dining"
+            class="w-full h-56 object-cover rounded-t-3xl shadow-inner"
+            height="400"
+            loading="lazy"
+            src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/16/90/ee/67/ambiente-charmoso-e-aconchegan.jpg?w=900&h=500&s=1"
+            width="600"
+          />
+          <div class="p-6">
+            <h3 class="font-extrabold text-indigo-700 text-2xl mb-3">
+              Cafeteria
+            </h3>
+            <p class="text-indigo-900 text-lg leading-relaxed">
+              Healthy meals and snacks for patients and visitors.
+            </p>
+          </div>
+        </article>
+        <article
+          aria-label="Garden and Outdoor Area"
+          class="floating-card rounded-3xl overflow-hidden bg-gradient-to-tr from-indigo-100 to-purple-100 hover:from-indigo-200 hover:to-purple-200 transition-colors duration-300 cursor-pointer"
+          role="button"
+          tabindex="0"
+          data-area="garden"
+        >
+          <img
+            alt="Hospital garden with walking paths, benches, and greenery"
+            class="w-full h-56 object-cover rounded-t-3xl shadow-inner"
+            height="400"
+            loading="lazy"
+            src="https://media.biltrax.com/wp-content/uploads/2022/02/theraputic-garden-1.jpg"
+            width="600"
+          />
+          <div class="p-6">
+            <h3 class="font-extrabold text-indigo-700 text-2xl mb-3">
+              Garden &amp; Outdoor Area
+            </h3>
+            <p class="text-indigo-900 text-lg leading-relaxed">
+              Relaxing outdoor space for fresh air and walks.
+            </p>
+          </div>
+        </article>
+        <article
+          aria-label="Pharmacy"
+          class="floating-card rounded-3xl overflow-hidden bg-gradient-to-tr from-indigo-100 to-purple-100 hover:from-indigo-200 hover:to-purple-200 transition-colors duration-300 cursor-pointer"
+          role="button"
+          tabindex="0"
+          data-area="pharmacy"
+        >
+          <img
+            alt="Hospital pharmacy with shelves stocked with medicines and a pharmacist assisting a patient"
+            class="w-full h-56 object-cover rounded-t-3xl shadow-inner"
+            height="400"
+            loading="lazy"
+            src="https://www.kistmcth.edu.np/uploads/service/1693973243.jpg"
+            width="600"
+          />
+          <div class="p-6">
+            <h3 class="font-extrabold text-indigo-700 text-2xl mb-3">
+              Pharmacy
+            </h3>
+            <p class="text-indigo-900 text-lg leading-relaxed">
+              Medication dispensing and consultation area.
+            </p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Hospital Modal -->
+    <div id="hospital-modal" role="dialog" aria-modal="true" aria-labelledby="hospital-modal-title" aria-describedby="hospital-modal-desc" tabindex="-1">
+      <div id="hospital-modal-content">
+        <button id="hospital-modal-close" aria-label="Close hospital details">&times;</button>
+        <h3 id="hospital-modal-title" class="text-3xl font-extrabold text-indigo-700 mb-4"></h3>
+        <iframe id="hospital-modal-iframe" title="360 degree hospital view"></iframe>
+        <p id="hospital-modal-desc" class="text-indigo-900 text-lg mt-4"></p>
+      </div>
+    </div>
+
+    <!-- Stress Busting Games Section -->
+    <section
+      aria-label="Mini Stress Busting Games"
+      class="tab-content hidden bg-white rounded-3xl shadow-2xl p-8 max-w-5xl mx-auto"
+      id="games"
+      role="tabpanel"
+      tabindex="0"
+    >
+      <h2
+        class="text-4xl font-extrabold text-indigo-700 mb-10 gradient-text select-none"
+        tabindex="0"
+      >
+        Mini Stress Busting Games
+      </h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-12">
+        <!-- Game 1: Breathing Exercise -->
+        <article
+          aria-label="Breathing Exercise Game"
+          class="bg-gradient-to-tr from-indigo-50 to-purple-50 rounded-3xl p-8 flex flex-col items-center shadow-lg floating-card"
+          role="region"
+          tabindex="0"
+        >
+          <h3 class="text-indigo-700 font-extrabold text-3xl mb-4 select-none">
+            Breathing Exercise
+          </h3>
+          <img
+            alt="Calm breathing animation with circle expanding and contracting"
+            class="mb-6 rounded-2xl shadow-lg"
+            height="200"
+            loading="lazy"
+            src="https://mir-s3-cdn-cf.behance.net/project_modules/disp/9c0734100731535.5f0f2ac318fee.gif"
+            width="300"
+          />
+          <button
+            aria-label="Start or stop breathing exercise"
+            aria-pressed="false"
+            class="btn-gradient rounded-full px-10 py-3 text-xl shadow-lg hover:shadow-xl focus-visible:ring-4 focus-visible:ring-indigo-500"
+            id="start-breathing"
+          >
+            Start Exercise
+          </button>
+          <p
+            aria-live="polite"
+            class="mt-6 text-center text-indigo-900 font-semibold text-lg min-h-[3rem]"
+            id="breathing-instruction"
+          ></p>
+        </article>
+        <!-- Game 2: Color Matching -->
+        <article
+          aria-label="Color Matching Game"
+          class="bg-gradient-to-tr from-indigo-50 to-purple-50 rounded-3xl p-8 flex flex-col items-center shadow-lg floating-card"
+          role="region"
+          tabindex="0"
+        >
+          <h3 class="text-indigo-700 font-extrabold text-3xl mb-4 select-none">
+            Color Matching
+
+          </h3>
+          <img height="200"
+            loading="lazy"
+            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTJfU6UlU4Qu-1mouosDCTvDxpbfKuDMs6srg&s"
+            width="300"
+            />
+          <div
+            aria-label="Color squares to select"
+            class="flex flex-wrap justify-center gap-6 mb-6"
+            id="color-matching-game"
+            role="list"
+          ></div>
+          <button
+            aria-label="Start or stop color matching game"
+            aria-pressed="false"
+            class="btn-gradient rounded-full px-10 py-3 text-xl shadow-lg hover:shadow-xl focus-visible:ring-4 focus-visible:ring-indigo-500"
+            id="start-color-match"
+          >
+            Start Game
+          </button>
+          <p
+            aria-live="polite"
+            class="mt-6 text-center text-indigo-900 font-semibold text-lg min-h-[3rem]"
+            id="color-match-feedback"
+          ></p>
+        </article>
+        <!-- Game 3: Mindful Coloring -->
+        <article
+          aria-label="Mindful Coloring Game"
+          class="bg-gradient-to-tr from-indigo-50 to-purple-50 rounded-3xl p-8 flex flex-col items-center shadow-lg floating-card"
+          role="region"
+          tabindex="0"
+        >
+          <h3 class="text-indigo-700 font-extrabold text-3xl mb-4 select-none">
+            Mindful Coloring
+          </h3>
+          <img
+            alt="Coloring book with soothing patterns and colors"
+            class="mb-6 rounded-2xl shadow-lg"
+            height="200"
+            loading="lazy"
+            src="https://cdn.prod.website-files.com/6152909339c5938b8fdca638/61bbec68709d33469f9a9e19_MG3iJ2eiHBbbdOB4s9Kz-staP9gpkxfXgVt2r13oaiECAyPGMhqq49k4aO_5tH_dlbN-tvKvm6B-QZHStChxKWN0sKqTtxB9zJgi3USZKHwwFazBJMoRm90cqaC95wjBMaWh5Czx.gif"
+            width="300"
+          />
+          <button
+            aria-label="Start mindful coloring game"
+            class="btn-gradient rounded-full px-10 py-3 text-xl shadow-lg hover:shadow-xl focus-visible:ring-4 focus-visible:ring-indigo-500"
+            id="start-coloring"
+          >
+            Start Game
+          </button>
+          <p
+            aria-live="polite"
+            class="mt-6 text-center text-indigo-900 font-semibold text-lg min-h-[3rem]"
+            id="coloring-feedback"
+          ></p>
+        </article>
+        <!-- Game 4: Guided Meditation -->
+        <article
+          aria-label="Guided Meditation Game"
+          class="bg-gradient-to-tr from-indigo-50 to-purple-50 rounded-3xl p-8 flex flex-col items-center shadow-lg floating-card"
+          role="region"
+          tabindex="0"
+        >
+          <h3 class="text-indigo-700 font-extrabold text-3xl mb-4 select-none">
+            Guided Meditation
+          </h3>
+          <img
+            alt="Peaceful meditation scene with calm nature background"
+            class="mb-6 rounded-2xl shadow-lg"
+            height="200"
+            loading="lazy"
+            src="https://i.pinimg.com/originals/15/64/c0/1564c0f85bbff284d20c1fb0a542bdbe.gif"
+            width="300"
+          />
+          <button
+            aria-label="Start guided meditation"
+            class="btn-gradient rounded-full px-10 py-3 text-xl shadow-lg hover:shadow-xl focus-visible:ring-4 focus-visible:ring-indigo-500"
+            id="start-meditation"
+          >
+            Start Meditation
+          </button>
+          <p
+            aria-live="polite"
+            class="mt-6 text-center text-indigo-900 font-semibold text-lg min-h-[3rem]"
+            id="meditation-feedback"
+          ></p>
+        </article>
+        <!-- Game 5: Positive Affirmations -->
+        <article
+          aria-label="Positive Affirmations Game"
+          class="bg-gradient-to-tr from-indigo-50 to-purple-50 rounded-3xl p-8 flex flex-col items-center shadow-lg floating-card"
+          role="region"
+          tabindex="0"
+        >
+          <h3 class="text-indigo-700 font-extrabold text-3xl mb-4 select-none">
+            Positive Affirmations
+          </h3>
+          <img
+            alt="Sunrise with positive words and affirmations"
+            class="mb-6 rounded-2xl shadow-lg"
+            height="200"
+            loading="lazy"
+            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjweTSMEiCuGpEU-4-g2vHrTlR2mF2fSu0oA&s"
+            width="300"
+          />
+          <button
+            aria-label="Start positive affirmations"
+            class="btn-gradient rounded-full px-10 py-3 text-xl shadow-lg hover:shadow-xl focus-visible:ring-4 focus-visible:ring-indigo-500"
+            id="start-affirmations"
+          >
+            Start Affirmations
+          </button>
+          <p
+            aria-live="polite"
+            class="mt-6 text-center text-indigo-900 font-semibold text-lg min-h-[3rem]"
+            id="affirmations-feedback"
+          ></p>
+        </article>
+        <!-- Game 6: Visualization Exercise -->
+        <article
+          aria-label="Visualization Exercise Game"
+          class="bg-gradient-to-tr from-indigo-50 to-purple-50 rounded-3xl p-8 flex flex-col items-center shadow-lg floating-card"
+          role="region"
+          tabindex="0"
+        >
+          <h3 class="text-indigo-700 font-extrabold text-3xl mb-4 select-none">
+            Visualization Exercise
+          </h3>
+          <img
+            alt="Calm lake with mountains for visualization"
+            class="mb-6 rounded-2xl shadow-lg"
+            height="200"
+            loading="lazy"
+            src="https://naturallysavvy.com/wp-content/uploads/2018/11/07_Visualization-techniques-to-calm-your-anxious-mind_technique7.gif"
+            width="300"
+          />
+          <button
+            aria-label="Start visualization exercise"
+            class="btn-gradient rounded-full px-10 py-3 text-xl shadow-lg hover:shadow-xl focus-visible:ring-4 focus-visible:ring-indigo-500"
+            id="start-visualization"
+          >
+            Start Exercise
+          </button>
+          <p
+            aria-live="polite"
+            class="mt-6 text-center text-indigo-900 font-semibold text-lg min-h-[3rem]"
+            id="visualization-feedback"
+          ></p>
+        </article>
+        <!-- Game 7: Gratitude Journal -->
+        <article
+          aria-label="Gratitude Journal Game"
+          class="bg-gradient-to-tr from-indigo-50 to-purple-50 rounded-3xl p-8 flex flex-col items-center shadow-lg floating-card"
+          role="region"
+          tabindex="0"
+        >
+          <h3 class="text-indigo-700 font-extrabold text-3xl mb-4 select-none">
+            Gratitude Journal
+          </h3>
+          <img
+            alt="Open journal with pen and flowers"
+            class="mb-6 rounded-2xl shadow-lg"
+            height="200"
+            loading="lazy"
+            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSVxHmVjHZ80b4_ijqYY9F7RwEv98nis6RFoQ&s"
+            width="300"
+          />
+          <button
+            aria-label="Start gratitude journal"
+            class="btn-gradient rounded-full px-10 py-3 text-xl shadow-lg hover:shadow-xl focus-visible:ring-4 focus-visible:ring-indigo-500"
+            id="start-gratitude"
+          >
+            Start Journal
+          </button>
+          <p
+            aria-live="polite"
+            class="mt-6 text-center text-indigo-900 font-semibold text-lg min-h-[3rem]"
+            id="gratitude-feedback"
+          ></p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Rewards & Badges Section -->
+    <section
+      aria-label="Rewards and Badges"
+      class="tab-content hidden bg-white rounded-3xl shadow-2xl p-10 max-w-6xl mx-auto"
+      id="rewards"
+      role="tabpanel"
+      tabindex="0"
+    >
+      <h2
+        class="text-4xl font-extrabold text-indigo-700 mb-4 gradient-text select-none"
+        tabindex="0"
+      >
+        Rewards &amp; Badges
+      </h2>
+      <p id="rewards-warning">⚠️ Only for staff access</p>
+      <div
+        class="grid grid-cols-2 sm:grid-cols-3 gap-12 mb-6"
+        id="badges-container"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+      </div>
+      <h3 class="text-indigo-700 font-bold mb-4">Additional Activities</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-12" id="additional-badges-container" aria-live="polite" aria-atomic="true">
+      </div>
+    </section>
+
+    <!-- Exercise & Motivation Section -->
+    <section
+      aria-label="Exercise and Motivation"
+      class="tab-content hidden bg-white rounded-3xl shadow-2xl p-10 max-w-6xl mx-auto"
+      id="exercise"
+      role="tabpanel"
+      tabindex="0"
+    >
+      <h2
+        class="text-4xl font-extrabold text-indigo-700 mb-12 gradient-text select-none"
+        tabindex="0"
+      >
+        Exercise &amp; Motivation
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-14">
+        <article
+          aria-label="Physiotherapy Exercises"
+          class="bg-gradient-to-tr from-indigo-50 to-purple-50 rounded-3xl p-8 shadow-lg floating-card max-h-[480px] overflow-y-auto"
+          role="region"
+          tabindex="0"
+          id="physiotherapy-exercises"
+        >
+          <h3 class="text-indigo-700 font-extrabold text-3xl mb-6 select-none">
+            Physiotherapy Exercises
+          </h3>
+          <ul class="list-none space-y-8 text-indigo-900 text-lg leading-relaxed">
+            <li tabindex="0" class="exercise-item" data-exercise="ankle-pumps" role="button" aria-label="Ankle Pumps exercise tutorial and music">
+              <strong>Ankle Pumps:</strong> Move your foot up and down 10 times.
+              <img src="https://i.gifer.com/8fZu.gif" />
+              <audio src="https://actions.google.com/sounds/v1/human_voices/applause.ogg" preload="none"></audio>
+            </li>
+            <li tabindex="0" class="exercise-item" data-exercise="heel-slides" role="button" aria-label="Heel Slides exercise tutorial and music">
+              <strong>Heel Slides:</strong> Slide your heel towards your buttocks and back 10 times.
+              <img src="https://www.vissco.com/wp-content/uploads/animation/sub/single-heel-slide.gif" />
+              <audio src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="none"></audio>
+            </li>
+            <li tabindex="0" class="exercise-item" data-exercise="quadriceps-sets" role="button" aria-label="Quadriceps Sets exercise tutorial and music">
+              <strong>Quadriceps Sets:</strong> Tighten thigh muscles and hold for 5 seconds, repeat 10 times.
+              <img src="https://i.pinimg.com/originals/20/82/af/2082afc1a5fdc5cedb46526b6b5822ad.gif" />
+              <audio src="https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg" preload="none"></audio>
+            </li>
+            <li tabindex="0" class="exercise-item" data-exercise="gluteal-sets" role="button" aria-label="Gluteal Sets exercise tutorial and music">
+              <strong>Gluteal Sets:</strong> Squeeze buttocks and hold for 5 seconds, repeat 10 times.
+              <img src="https://media.post.rvohealth.io/wp-content/uploads/2022/01/Seated-glute-stretch.gif" alt="Image showing gluteal sets exercise tutorial" class="exercise-gif" />
+              <audio src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" preload="none"></audio>
+            </li>
+            <li tabindex="0" class="exercise-item" data-exercise="arm-raises" role="button" aria-label="Arm Raises exercise tutorial and music">
+              <strong>Arm Raises:</strong> Raise your arms above your head slowly 10 times.
+              <img src="https://i.pinimg.com/originals/02/68/e4/0268e44913d4065df86581185f30da27.gif" alt="Image showing arm raises exercise tutorial" class="exercise-gif" />
+              <audio src="https://actions.google.com/sounds/v1/cartoon/slide_whistle.ogg" preload="none"></audio>
+            </li>
+            <li tabindex="0" class="exercise-item" data-exercise="neck-rotations" role="button" aria-label="Neck Rotations exercise tutorial and music">
+              <strong>Neck Rotations:</strong> Slowly turn your head left and right 10 times.
+              <img src="https://i.pinimg.com/originals/cd/f3/ef/cdf3ef571fe7424c66275452c063fc08.gif" alt="Image showing neck rotations exercise tutorial" class="exercise-gif" />
+              <audio src="https://actions.google.com/sounds/v1/cartoon/slide_whistle_down.ogg" preload="none"></audio>
+            </li>
+            <li tabindex="0" class="exercise-item" data-exercise="deep-breathing" role="button" aria-label="Deep Breathing exercise tutorial and music">
+              <strong>Deep Breathing:</strong> Take deep breaths in and out for 5 minutes.
+              <img src="https://cdn.dribbble.com/userupload/25450225/file/original-2e84eb5b3d1aebb171ae4915af849bc9.gif" alt="Image showing deep breathing exercise tutorial" class="exercise-gif" />
+              <audio src="https://actions.google.com/sounds/v1/ambiences/wind_chimes.ogg" preload="none"></audio>
+            </li>
+          </ul>
+        </article>
+        <article
+          aria-label="Mood-Based Music and Stories"
+          class="bg-gradient-to-tr from-indigo-50 to-purple-50 rounded-3xl p-8 shadow-lg floating-card flex flex-col"
+          role="region"
+          tabindex="0"
+        >
+          <h3 class="text-indigo-700 font-extrabold text-3xl mb-6 select-none">
+            Mood-Based Music &amp; Stories
+          </h3>
+          <label
+            class="block mb-4 font-semibold text-indigo-900 text-lg"
+            for="mood-select"
+            >Select your mood:</label
+          >
+          <select
+            aria-describedby="mood-desc"
+            class="w-full rounded-3xl border-2 border-indigo-300 px-5 py-3 text-lg focus:outline-none focus:ring-4 focus:ring-indigo-400 shadow-md transition-shadow"
+            id="mood-select"
+          >
+            <option disabled selected value="">-- Choose Mood --</option>
+            <option value="calm">Calm</option>
+            <option value="happy">Happy</option>
+            <option value="motivated">Motivated</option>
+            <option value="relaxed">Relaxed</option>
+            <option value="sleepy">Sleepy</option>
+          </select>
+          <div
+            aria-live="polite"
+            class="mt-8 bg-white rounded-3xl p-6 flex flex-col justify-center items-center text-indigo-900 font-semibold text-lg min-h-[220px] shadow-inner select-text"
+            id="media-container"
+            tabindex="0"
+          >
+            <p>Select a mood to get music and stories.</p>
+          </div>
+          <div class="mt-10 space-y-8" id="short-stories-container" tabindex="0" aria-label="Short stories for motivation">
+            <div class="story-card" tabindex="0" data-story="story1">
+              <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSj0y6IZ5k8hm6FH8FFhEh-7OPow3LEP1_nSA&s" alt="Peaceful forest with sunlight filtering through trees" />
+              <p>Once upon a time, a patient found strength in nature's calm embrace...</p>
+            </div>
+            <div class="story-card" tabindex="0" data-story="story2">
+              <img src="data:image/jpeg;base64,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" alt="Sunrise over mountains symbolizing new beginnings" />
+              <p>Every day is a new beginning, filled with hope and healing.</p>
+            </div>
+            <div class="story-card" tabindex="0" data-story="story3">
+              <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSm_Nhi6h0NrtT3nrmdppWeHSCrQS44fRqyNQ&s" alt="Ocean waves gently crashing on shore" />
+              <p>Like the ocean waves, healing comes in gentle, steady rhythms.</p>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Story Modal -->
+    <div id="story-modal" role="dialog" aria-modal="true" aria-labelledby="story-modal-title" aria-describedby="story-modal-desc" tabindex="-1">
+      <div id="story-modal-content">
+        <button id="story-modal-close" aria-label="Close story details">&times;</button>
+        <h3 id="story-modal-title" class="text-3xl font-extrabold text-indigo-700 mb-4"></h3>
+        <img id="story-modal-img" alt="" />
+        <p id="story-modal-desc" class="text-indigo-900 text-lg mt-4"></p>
+      </div>
+    </div>
+
+    <!-- Self Quiz Section -->
+    <section
+      aria-label="Self Quiz"
+      class="tab-content hidden bg-white rounded-3xl shadow-2xl p-10 max-w-4xl mx-auto"
+      id="quiz"
+      role="tabpanel"
+      tabindex="0"
+    >
+      <h2
+        class="text-4xl font-extrabold text-indigo-700 mb-12 gradient-text select-none"
+        tabindex="0"
+      >
+        Self Quiz
+      </h2>
+      <form aria-describedby="quiz-desc" class="space-y-8" id="quiz-form">
+        <p class="sr-only" id="quiz-desc">
+          Quiz to assess your health habits and knowledge.
+        </p>
+        <fieldset>
+          <label
+            class="block font-semibold text-indigo-900 text-xl mb-3 select-none"
+            for="q1"
+            >1. How often do you take your medications on time?</label
+          >
+          <select
+            class="w-full rounded-3xl border-2 border-indigo-300 px-5 py-3 text-lg focus:outline-none focus:ring-4 focus:ring-indigo-400 shadow-md transition-shadow"
+            id="q1"
+            name="q1"
+            required
+          >
+            <option disabled selected value="">Select an option</option>
+            <option value="always">Always</option>
+            <option value="often">Often</option>
+            <option value="sometimes">Sometimes</option>
+            <option value="rarely">Rarely</option>
+            <option value="never">Never</option>
+          </select>
+        </fieldset>
+        <fieldset>
+          <label
+            class="block font-semibold text-indigo-900 text-xl mb-3 select-none"
+            for="q2"
+            >2. How would you rate your knowledge about your medical condition?</label
+          >
+          <select
+            class="w-full rounded-3xl border-2 border-indigo-300 px-5 py-3 text-lg focus:outline-none focus:ring-4 focus:ring-indigo-400 shadow-md transition-shadow"
+            id="q2"
+            name="q2"
+            required
+          >
+            <option disabled selected value="">Select an option</option>
+            <option value="excellent">Excellent</option>
+            <option value="good">Good</option>
+            <option value="average">Average</option>
+            <option value="poor">Poor</option>
+            <option value="none">None</option>
+          </select>
+        </fieldset>
+        <fieldset>
+          <label
+            class="block font-semibold text-indigo-900 text-xl mb-3 select-none"
+            for="q3"
+            >3. Do you follow the recommended diet plan?</label
+          >
+          <select
+            class="w-full rounded-3xl border-2 border-indigo-300 px-5 py-3 text-lg focus:outline-none focus:ring-4 focus:ring-indigo-400 shadow-md transition-shadow"
+            id="q3"
+            name="q3"
+            required
+          >
+            <option disabled selected value="">Select an option</option>
+            <option value="always">Always</option>
+            <option value="often">Often</option>
+            <option value="sometimes">Sometimes</option>
+            <option value="rarely">Rarely</option>
+            <option value="never">Never</option>
+          </select>
+        </fieldset>
+        <fieldset>
+          <label
+            class="block font-semibold text-indigo-900 text-xl mb-3 select-none"
+            for="q4"
+            >4. How frequently do you perform your physiotherapy exercises?</label
+          >
+          <select
+            class="w-full rounded-3xl border-2 border-indigo-300 px-5 py-3 text-lg focus:outline-none focus:ring-4 focus:ring-indigo-400 shadow-md transition-shadow"
+            id="q4"
+            name="q4"
+            required
+          >
+            <option disabled selected value="">Select an option</option>
+            <option value="daily">Daily</option>
+            <option value="several_times_week">Several times a week</option>
+            <option value="once_week">Once a week</option>
+            <option value="rarely">Rarely</option>
+            <option value="never">Never</option>
+          </select>
+        </fieldset>
+        <fieldset>
+          <label
+            class="block font-semibold text-indigo-900 text-xl mb-3 select-none"
+            for="q5"
+            >5. How do you feel emotionally most of the time?</label
+          >
+          <select
+            class="w-full rounded-3xl border-2 border-indigo-300 px-5 py-3 text-lg focus:outline-none focus:ring-4 focus:ring-indigo-400 shadow-md transition-shadow"
+            id="q5"
+            name="q5"
+            required
+          >
+            <option disabled selected value="">Select an option</option>
+            <option value="happy">Happy</option>
+            <option value="calm">Calm</option>
+            <option value="anxious">Anxious</option>
+            <option value="sad">Sad</option>
+            <option value="motivated">Motivated</option>
+          </select>
+        </fieldset>
+        <button
+          aria-label="Submit quiz"
+          class="btn-gradient rounded-3xl px-12 py-4 text-2xl shadow-lg hover:shadow-xl focus-visible:ring-4 focus-visible:ring-indigo-500 w-full sm:w-auto"
+          type="submit"
+        >
+          Submit Quiz
+        </button>
+      </form>
+      <div
+        aria-live="polite"
+        class="mt-10 p-6 bg-indigo-50 rounded-3xl text-indigo-900 font-extrabold text-xl hidden"
+        id="quiz-result"
+        tabindex="0"
+      ></div>
+      <div id="quiz-recommendations" class="mt-6 text-indigo-800 font-semibold text-lg hidden" tabindex="0"></div>
+    </section>
+  </main>
+
+  <footer
+    class="bg-white/90 backdrop-blur-md border-t border-indigo-300 text-center py-6 text-indigo-700 font-semibold tracking-wide select-none"
+  >
+    © 2024 Patient Wellness App. All rights reserved.
+  </footer>
+
+  <script>
+    // Authentication & App State
+    const authPage = document.getElementById("auth-page");
+    const authForm = document.getElementById("auth-form");
+    const authError = document.getElementById("auth-error");
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const forgotPasswordBtn = document.getElementById("forgot-password-btn");
+    const mainHeader = document.getElementById("main-header");
+    const appMain = document.getElementById("app-main");
+    const rewardCounter = document.getElementById("reward-counter");
+    const pointsDisplay = document.getElementById("points-display");
+    const badgesDisplay = document.getElementById("badges-display");
+    const badgePopup = document.getElementById("badge-popup");
+    const badgePopupText = document.getElementById("badge-popup-text");
+    const badgePopupImg = document.getElementById("badge-popup-img");
+
+    // Tabs
+    const tabs = document.querySelectorAll(".tab-btn");
+    const tabContents = document.querySelectorAll(".tab-content");
+    const mobileMenuBtn = document.getElementById("mobile-menu-btn");
+    const mobileMenu = document.getElementById("mobile-menu");
+
+    // User data (simulate backend with localStorage)
+    let userData = {
+      points: 0,
+      badges: [],
+      username: null,
+      loggedIn: false,
+      pointsHistory: [],
+    };
+
+    // Badges data with assigned reward points for clicking
+    const badges = [
+      {
+        id: "medication",
+        name: "Medication On Time",
+        description: "Awarded for taking medications on schedule.",
+        img: "https://storage.googleapis.com/a1aa/image/61c91bf0-97d0-481d-7ddb-4337e5317453.jpg",
+        threshold: 10,
+        rewardPoints: 5,
+      },
+      {
+        id: "healthyEating",
+        name: "Healthy Eating",
+        description: "Awarded for following healthy food habits.",
+        img: "https://storage.googleapis.com/a1aa/image/fcbb3abb-413b-4dd8-0dcd-aa6e118faae6.jpg",
+        threshold: 20,
+        rewardPoints: 7,
+      },
+      {
+        id: "exercise",
+        name: "Exercise Completed",
+        description: "Awarded for completing physiotherapy exercises.",
+        img: "https://storage.googleapis.com/a1aa/image/9f6deaad-1662-468d-beef-bcd65f4cf29a.jpg",
+        threshold: 30,
+        rewardPoints: 10,
+      },
+      {
+        id: "stressRelief",
+        name: "Stress Relief",
+        description: "Awarded for playing stress busting games.",
+        img: "https://storage.googleapis.com/a1aa/image/f520a6f3-ce32-4113-9eef-6500bbad8541.jpg",
+        threshold: 40,
+        rewardPoints: 8,
+      },
+      {
+        id: "quizMaster",
+        name: "Quiz Master",
+        description: "Awarded for completing self quizzes successfully.",
+        img: "https://storage.googleapis.com/a1aa/image/3123be1c-f22b-4b3e-5c4b-af81767a9005.jpg",
+        threshold: 50,
+        rewardPoints: 12,
+      },
+      {
+        id: "healthyHabits",
+        name: "Healthy Habits",
+        description: "Awarded for consistent healthy lifestyle choices.",
+        img: "https://storage.googleapis.com/a1aa/image/59aa83c7-5a66-4985-18b2-f0d5867f5a5e.jpg",
+        threshold: 60,
+        rewardPoints: 15,
+      },
+    ];
+
+    // Additional badges for rewards section
+    const additionalBadges = [
+      {
+        id: "hydration",
+        name: "Hydration Hero",
+        description: "Awarded for drinking enough water daily.",
+        img: "data:image/png;base64,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",
+        threshold: 70,
+        rewardPoints: 10,
+      },
+      {
+        id: "sleep",
+        name: "Sleep Champion",
+        description: "Awarded for maintaining good sleep habits.",
+        img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSNIq1eYboAp_3flHoXhbudxMtB-fGXluImyw&s",
+        threshold: 80,
+        rewardPoints: 12,
+      },
+      {
+        id: "mindfulness",
+        name: "Mindfulness Master",
+        description: "Awarded for practicing mindfulness regularly.",
+        img: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxISEBUSEhIVFhUVFQ8QEBASFRUVFRUVFRUWFxUVFxUYHSggGholHRUVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OGhAQGy0lHyUtLS8tLS0tLSstLS0tLS0tLi8tLS0tLy0tLS0tLSstLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAMIBAwMBIgACEQEDEQH/xAAcAAABBQEBAQAAAAAAAAAAAAADAAIEBQYBBwj/xABQEAACAQMCAgUIBQYKCAYDAAABAgMABBESIQUxBhNBUWEHFCJxgZGh0TJCUmKSIzM1grHBF1RzdKKjstLh8BUlY3KTs9PxJERklMLEFjRD/8QAGgEAAwEBAQEAAAAAAAAAAAAAAQIDAAQFBv/EAC8RAAICAQMDAgQGAgMAAAAAAAABAhEDEiExE0FRBGEicaHwgZGxweHxQtEUQ1L/2gAMAwEAAhEDEQA/ALcCnqK7inKK9M5Bumlpommu6awAWmnKtEC05ErBB6K7oo/V0hHWsIIJRFSniIf5Jp6wDx95oWYSJUiNKGsA8fefnRktx4/ib50jYwaNamRLUSO3Hj+JvnUqK2Xx/E3zqMhkTYhUqMVDjtl8fxN86kJbL4/if51JjoloKKBUZbZfvfjf50QWy/e/G/zqbGDgV3FB82X7343+dd82X7343+dAIbFLFC82X7343+dLzZfvfjf51jBcVzFD82X7343+dLzZfvfjf51jD8VzFM82X7343+dLzVfvfjf51jDitNK1zzVfvfjf51zzVfvfjf50bMcKU0x07zVfvfjf51w2i/e/G/zrWYG0dCaKpBtF+9+N/nTTZr4/if50bDRBeHeu1IazXPb+JvnSrag0YMJTglHCU4JXdqOSgWmloowSnaK2o1AAlOC0bRXQlDUbSMC04LTwlPCVtQaGBKpZOllkjMrTYKllYaJNipwR9HvFaBUrw3iqE3U4AyeuuTgdwdyfgDTQqRqPb7OVZEWRDqVwGRh2g7ilxC+it4zLM2lAVBbBO5OAMDc1lPJZxPXA9uT6UTak/k33+DaveKrvKtxPLxWq/VHXSAfabKoPYNR/WFLXxaQmx4b0rsppVijm1O5IRdEgyQCTuVxyBrSxivCugSEcUtwRgh5QQewiKTIr3hcAZOwG5PcKTKlF0holZxXpVZ2kgjnmCOVD6dLt6JJAPog4+ias+BcZgu4zJbyB0DGMkAjDAAkEMARswPtrwqdZOLcTk6vnKZTHnkscaHRnuyFUetq0HkX4v1d29q2wnXUgPZLHuRjvK6vwCtPClG+4U9z2papON9M7C0YpPcKHGMxIGkcZ5alQHT7cU/phxB7fh9xNHs6RMUPPDHChvZnPsrxbyddH7a+uXS6nZcAOiBwHndidXpNknHM43Or11LHjUk5S4QzdbI9bsPKPwuVtIuQh/wBsjxD8bgL8au+NcetrSJZriUJG7KiOAzgsyswxoB7FJz4V5/x3yOxFC1pM6vjKxzkNGx7tQUMue/0vVVzb+TiJuGQ2M003oSC5d42H5zQylEEisFjGs7ADlnmTkOOLZpsy1E3+ErhX8a/qpv7lL+ErhX8a/qpv7ledeUTyf2/DrVJopZ3ZpkiKymMrgo7ZGhFOfRHbTvJ75PbfiFoZ5Zp0YSyRaYjEFwoUg+nGxz6R7ap0sWnVboFyuj1i16UWklq92kuYI9Qkk0OMaQC3okZPMchVV/CVwr+Nf1U39yoPGOjcXD+BXkETyOpjmk1SlS2WCgj0VUY9EdlebeTXohDxJ51mklQRLCymEoCdZcHOtG+yOWKWOODTk26QXJ3R6v8AwlcK/jX9VN/cq6Xj9sbTzwSf+H0l+t0v9EHSTpxq5jurE/wMWX8Zu/xQf9KrXpRwhLTgE9tGzMscLKrSYLHL6t9IA7e6lccdpRbNv3DfwlcK/jX9VN/cotv5QuFu2kXaAntkV41/E6gD315L5Neh8PEnuFmklTqVgK9SUGesMgOrWjfYHLHM1d9NvJfFaWj3ME8rdXpZ0n0HKlgp0lFXBGc75ziqPFiUtNuwapVZ7MrAgEEEEAgjcEHkQaouO9MLGzbRcXCq+xMShpHGeWUQEj24rznya9JpouF36gljaRdfb6twmtZPR/3QyaseJrMdAeCQX94yXlwy5BkHpAPPIW3Gts78ye0++gsCTep7I2vweuWXlI4XK2kXOg98ySRr+Nl0j31q42DAMpBBAKsCCCDyII5ivNONeRyBkJtZ5EfHopMQ8Z8MgBl9e/qrXdAujhsLJYWcs5Jkl9IlFdsZWMHko9mTk9tTmsdXFjJvuXxSlT6VQGswgjrojqSEroSrdQXQRxHXerqQEp2ih1A6CMI6cI6jcU4zb2w/LSKp5hebH2VnJ/KVYqSPTbu0jOfl8adOTV0DSjWhKcErGx+U+yOPRl3IB9Fdh3/S3Hqq4sOmljLjE2D3MCMevGe+h8QdJeKlePcEUHjIBGQbq5BHeMyZFe0QkMAykEHcMDkEeBrxrgP6bX+d3P8AakqmGdqXyFnGmh3D5P8ARfFir5Eas0bnnmCTBVvHHoH9U0bopA3EeL9c49EObpwexUIESe/QPEKau/K7wnaK7UcvyEpHcctGT7dQ/WFXHkm4R1VoZ2HpXDah39WmQnvOpv1hTyzLpa+72AoPVRheh36ai/l7n+xLXpXlK4t5vw9wDh5v/Dp34YHWfwBt+8ivNuhv6bi/l7n+xLUzyt8X629EIPo266T/ACj4Z/hoHrBppLVlivawLaLLvyLWCL1105UHa3i1EA42eQjPYfQH6prN9MYjYcXaWEjHWJexaTkekxZ0z3ahIMdxqzh8kVy6qzTQKSqkqwclSRnSTjmOVVvSjyez2Fv17SRumtEYRhgV1ZAY5HLOB+sK0Zwc29XPYzTrg90Xqbu23AeG4iBx9qORfka8f6QeSS6jJNsVuI/qoxVJQO4hsI3ryM91W/QDpLOODzxwRmW4tdoYxuerlJKvp+toPWeiNyFA7arejPlZngURXcZnC5XrQwSYY7HBGGI5fVPfmpwjkg3p7Bbi6szy8R4twxgGe4h3GlJctE2PqgNlDsPq717P5Pelf+kbUuyhJY26uZV+iTgFXXO4Ug8jyII35nzXp35SkvbU20VuyKzIzyTMuRoYMAqrkcxzzyztvWw8jHBJbe0kllUobh1eNG2PVouFYjsyWY47sHto5lePVJUzR52OeXL9HRfzmP8A5UtE8iP6Nb+cTf2Y6F5cv0dH/OY/+VLRfIj+jW/nE39mOk/6PxD/AJF95RP0Vd/yEleEdFOH8QmaQcP63UojM3UzLCcEtoyWddW4bvxXu/lE/RV3/ISV4t5P+mA4a8zGEy9asS4DhNOgue0HOdfwp8F9N1yLLktP/wAc6Sf+r/8Aexf9et7xyCZOjjpc6uuW1UTa2DtryM5cEhj45NUX8NKfxJv+MP7lX/SLjAvOj81yE0CSF20E6sYk088DPKhNztakluFV2PIOiXSG8szKbNdRkEQlzE0uAmvTy5fSapnFul/EuIhbRmDa2A6iJAhdgcgNnfYjlkDbflWq8gf5y9/3LP8AbPVX5XejxtL1buH0UnbrAy7dXcr6RI7icax4hqtqj1XGt/ItOrN55OOhZtLOVbpVMlztPFkELHpKiIkbE+k5JG3pYGcZOJ6SeSG5jZjaFZ49ysTsElA7Fy3oN68j1VvuD9LpLrhLXVvF1tyiFHgXH54AZOM7rghwBuRsN6wHRvys3MA6q7jNwASDJkRzKc7qwxhscsHSRUYdW5SXPgZ6djPi74twxhlrmAZAVXy0Jx9UBsxnbur2PycdLzxG3YyKFmiKpMF+iwYEq6g7gHDDHYVNefdN/KfHeWj20VuyCTRrkmZfRCsG9FVzvleZO1aTyI8Ckht5riRSvnBiEatsTHFrw+OwEyNjvAzyIpsqvHclTBHnY9KxSrtKuKiplRHXQlFApwFcfVOnQCCUG9l6uJ5MZ0I7479IJxUwCuOoIIbGCCCDyIxvWWTcOg+W+K8QlnleWViWZixz+wDsAqDXo3TfojZLIzW/ELZWydVvLKMg9wK5+Irz65tihxqRvGNtQ99d6mpHPKDTGxtg1qejlxZqD5wspJ+j1bKNx35/ztWVjiJ/xrVdHejUMrDruIWsQ5ldZL+rcBc+2p5UmuSuGTi+D1nycXIe3cJq0q/ohjnSCOWavYuj9qsvXLbRCTUX60RqH1HOW1Yzk5O/jTOjltbQQJHbuhXAOoMCXOPpE9+3wq4xXJLJOPkrJRk7RHu7KOVDHKiujY1I4DKcEEZB8QDRreFUVURQqqFVFUYCqBgAAcgBTwKzsnGpXhu7iJkRLY3CRal1da0APWM5yMIWBUAYPo5zvgLGUpbIVxSJw4NYwOJxbwo4b0ZVjGvW+2FwMljqIwNzmm2PBuHXAFylrCxdmk6xodLlwxySHUMG1A86rLiWS5vbLSwRRBJflGTVoZkWJA3pDV+dkxyxprYg1SWSUUt3b9xVFPsRuH8VhnaRIpAzQuY5lAIKPvscjwO422pl5d2sspsZSju8fWm2ddQaMNzO2OY7e6sXweQW1092SFjlvb+yumOwGZS9vIx8G1pn/aiidHVL8Rtrx/pXicRnUHmsA82W2T/hgN65Gq+hJt3tX1+1+hJvY0fDn4XaqtxCsEKzP5qsqR9XrcOy6CcD6yNz22qV0i4Tw9l668ghO8aGVo8tl2CINSjVuzKPbWNhtEmsLGKVQyPxG6R0PIqXvMiiccvZIrV+H3LFpIpeHPaztzubcXkADE9sibK/sbtqyj8Wzd39LoTsXRtuC2U+jqIkmQI+0EsrIGzpOoK2nOD29lanh3FIbiPrIZVkTJBZDnBHNSOYI7jvVJwo/wCtr7+Q4Z/9mgOoTjREW3W2Msl4q8iySotvI33yDKoPMgeGwe/zqzI7fdJOE3caiYiaPIkQPbTumcEBh+TxyJ38auuCx2sRkt7VEj6so8sUaaAplXKnGACSF7O6sp0GueJDhtoIre0ZOoh0M91KrFdIwWUQEA+GTVzwQ/604iO3HDjjwMTgH3g+6mkqtePf3AW17PbyGS2l0t+S62WF1LAxElcnbBGVIx4VU2XRXhU0SSx2VsySKskbiFRqVhlTgjPI0C6P+tLnw4bFnwzNPj9hqd0CP+qrL+a2v/KWhvGNp+DckOx6PcHmeVIrS1ZoX6qZRCoKNzwQR8eWx7qnzPYRwT2zLGsFvGGuYOrPVxxsC4yuMEEAnAzWTtLKSOW7v7ZS00N9dJPCP/M22mMtH/KKcsh78j61D4jfx3FvxqaJg0cllbOjDtBtpfcezHYRT6W3y+37AL/gXEuFQvptEWJpTGh6u1mj1nJCZPVgYyx3PfUrpFxfhxLW11pl06Hki6l5xH2q0mhWCbb+ljnS4bc8S/Jh7e0Ef5MOy3UzOE2yQpgALY7Mj11Fbht9aTTy2ggninlNzJbzFopVkKqrBJgCpB0DAYDHfS7Xu/r+4d6JlhJwyzt/OYPN4oZdAEkIGJTuEVQgy7fSAABPOo+nhXEpCrRRSTKupkmhaOcJnGrEiq+nszy3oDRniFvb3Nri3mt5pnSKdAyLKvWQzRSKhHaW9JTnt7alcL41P50lte2yRzPHK8E8D9bFIqFOtUFlV0I1IcEYPfWrl9/n92YPZdDOHxMHSzhDDdWKaiD3jVnBq/rlKouTfIaHUqYTXKHURqKGlmgh6WuvI1HraCl6e8WmtbCWaD6Y0KGI1aAzBS+PDNeD8a4/dzORLPIcEjSXONvVzr6QkwylWAIIIZSMgg8wR2isTx3ycWUxLqTAe9SCnub512+l9RGCpnPmwOW6PDGYnmc+uuCthxnoVDCTo4nZnH1XfS3uXVWbubBUzi4gfGdozKc+AJjA+Nd6mpcHHKEo8kdX76kxzLUHSef79/dR7S1ZzjUi+MkioP6RrNIMZyRo+GXUQK5kkUZ3K8xseQzvvit5wHj8cU8aw3M8qswVkkXnnbHP1VkOj3Qfryuq+tVycBYn61zsTjTsOw9terdHOiNtZ4KgvIP/AOkmMg/dXkP21x5cih/k/kd0FfMUavVVBe8GjjgmX8q8LvJcSWkYUs5c6njU7HQzZJXPaRnG1W3WV0PXDHI4vYZ47IHCrZjdTXTAqrpBbwIRhhHHqZmKn6OXkO3cg78C7DVE108SUzm5OxenRCl6PQPbz27hmjuHllkBIyGkbUdJA2wQCKmtw6MzRTbhoUlijUYC6ZNGQRjs6tcU4SU9ZKoskvP2xHjRDt+j8KxwxgviCd7qPJGS7GQkNtuv5VtvVRuO8CgvFjEwOYpEmidSAyspB2ODscYI/wAKlB6IHq0csruybxrgrrvo8HuHuFuLiJ5FiSQQsgVhHq0bMhP127e2pfCODQ24fQGLSHM00jtJLIcYGp23wByHIdgqSr08PVVkbVE3BA+DcPS2t4reMsUiRYkLEFsKMDJAAz7KicV4Ak0onWWaCYL1Rmt2VWZM5COrqysAScZXIycVYhqdqp1N3YukruF8BigEuGkkknwJ7iZtUr4UqoJwAAAThQABk7b1E4Z0X83WJI7276uLqwkReIpoTGEP5POnAwd847avNVLVR6jBoI/DeHpAZShb8tNJcPqIOHcKCBgbD0RVWvRG1VbxEDKt8CLhVIAGVZWMYx6JOtj27mrvVS1UOo13DoKi24AyMp8+vGClToZ4ipC/VOIwcHGOdNuOjQMjvFdXUHWMXljhkUozN9JgJUfQT9zFXOqlqo9Rm0FQ3ReDqIoY2li6ks8UsUrLKHfJdmY51liSTqBBzROF9H0im695priYIYkluGUlEYgsqKiqq5IGTjJwN6tNVd1Udb8g0hc0s0PVS1UpqEzb0qE7b0qkx9Jm0loV7fJEjSSNpVAWZj2AUISVD47Yrc28kDHSHXGob4OQQfHcCvPjDdXwexKLrYwHGvKgxJEA0ruAdix9Z5D2Vg+M8bluX1Su7dmGYkD1CpvHuid1bEl4yydksYLL7SOXtxVBtXtwUVGoVR4uRz1fGdGO6nihV0GjQiYXHypUPXTg1ChlJEiFsHY+2tl0f6QXEfoq2oZGzyNsAchQ5OVGR2H2VhkOdhv6q0fAeDyuQdDe40sk1wy2N3s0eycD4o8iEy6QcrowRnBzsTkgnbv79hVuJayHRjhEkcUs0wAw0AjXOdI1EsfA7D31pDnVp7c4HjnlXn5oK7X0PSxRtUTRNXetoHVgR6yc6n6uPHhklvhj20EHbOTzA+Gan02hkk+CwWWniWqsN94/Cng/eb4fKiogeMtlmoiy1UA/eb4fKiKfvt7x8qokSeMtxNVPN014ejaWu4sg4OltWD4lQRWM8pN4wNvA8rpbys3nMg32Ur6Ow32LHHbjkcVZdGDwiQmG2hjcooLM8JYkcsmSRd9/GuuOFKCnK38v3ZySdz0qvxNjw3j9tP8AmbiKQ9yOpI9a5yKsesrI3nRHh8v0rWNT2NEOqYHvBjxTYOATQ/8A6/ELhV7I5wlwo8AXAYD9ahUHw/z/AI/0bRJco2HWUusrMRWFw0iPPdaurJKiGMw6sgjD5dtS75xjmBVrv9tvePlSvbhhUH4LHrKXWVW4P2294+VIf77e8fKlD0yz6yuh6rQPvt7x8qcFP2294+VMBwLIPXddV4X77e8fKnBfvt7x8qIugn66WqoIT77e8fKu6fvv7x8qINJIkbelUGRd/pt7x8qVIOoGd0mnBSdqHcSLGhdjgKMk1530j8obBjHbjl9Jz39w76WOHUzuy+qUEei3t3DAheaVUAG+4JrzTpL024fJkR8PSV+ya4RMf0fS+NY6/wCMTTfnGzk5wagFRXSsMI8HmZPVZJ8hb69Eh2ghj8IlZf2saihDRVWnFaeyNXyDWM4JxsMZbBIGe89nI063IDKzAMAQSveM7gVZ9HeMm1nD7lD6MqrsSvep+0OYzseR51u+I8FtbpEkCxkS/m7uEdWSTt6ajbUDsQwyKZJseMEy44fDGcMkMcg/OahGmWR11rMu2xYA6vEb7mrnr1DqgUjXshA2JxkjbkfDu5Vnui9lcWJ6mQB1jLNbv9HVGx1SW8indcnLq24DZ39IY2YgGUaIhlb0o88wfsEcwc7eFJljGSto7fTucVS2ZJt7fAMMmRr39RGNJ+NceLSpc81HU4++Mgn8P7qJfvqYSDO4R178HYj3ioM85brTzAKnnjcejnHjsa8+WbHCk/Nfz9+TsgpS388kgx641wfzQdseJx+7NOisyYsk4+k/r22/z41W2Fw4BXmWfq8ezcfurSSEJGSTk4xj100HqRst43S8lbDZbEs2DgnHd66ju2STjHcO4dgqUwYry2PMnuG+B/nuqMI6ZpcBi922zgNEU0hFXQtahm0NuLdJVKSIrqeaOoZT7DXbG0ihXTFGka8ysahQT3kAc6eBXRTJ7UTcVdhuspwkoNdArCuKDa6Wuh0sUQUh+ulroRBpBTWDSDCSiLJQFWngVhWkSBJTusqOKcDRJuKDiSu9ZQRSJrWDSdkk3pUBzvXaA6iYvpiGezkCZyNL4HaFOT8/ZXjUcNe73ETBGYDJCsVHeQNhXnd1FHMCzIAxPpFRpOfZVsbXY8zLbe5h5UwaEVxWluOGp2MR696r5uHDP0/hVSRWpSlzR5bUjkfhQ1tzWo1kdY6uOj/H5LRiANcT/noGPov4/dbxFDtrHrNgVB7mOCfVmjS8BkXmPbzrb3sNGTT2PUOj/S+CWIwyN6OCIZXHpJnkH7sd/L9tXXDJNUbRLgSI3Wr4+II579viK8/tegT9Us1vdrNkZMYjZGA792yfYM+FBtnvIJVTDBgSyEbFcAknfswDkYwRTOKkenhyUt/v+D2BHMia9OFXUzqThkfOWQ+GcnP3hWevUkjYgbq6STK6/WGrdAPtDKD3d9Dbi11CgmkQMp09b1LB1IPcBuNtxt4ZqbNxxOvjdGHV4ZSOwHOxx7iK8qfoNUpPudsZPHvGmn9CJfWcyqcPiQGJiBu27BNyPrYfPbyNX1rdKCA/pY3OdxsMD5+01T2U2IvOZj9LdUB9Ik55nvzmpHDZi4LEY1EFUAzgDtx7e2r4vT6Eg5Z6n03vXdFvLNqOpzgHkB3dgqOb4Z0xqPFj2esmmSXKKdITW55J9NvdyA8alQ2v1ppVUnlFGAdPhtzPwp3S4OaUoxW4NpP1iebEf2R2UPrKFNKNR0g47NWM+3FMD5pabJ9RIP1lPD1HwaaXrUHqksPRA1QQ9EVqNG1k0Gng1DD07rKNC6mSxTwoqGJDTxKaFAcyWEFd0ionWmuiU1qNqJJUVzFCWQ06hwOh9c0Z7vfj9tNJNOWMnu99I5JB4GtA3h71+dKieaN4fiFdqfVXk2teUUuDVRxPgkL5YphjzZNiT49h9tWokrkrtpOkAnBwCcDPiaeLaZxySaPKeLxhGwUkG5yWXb2EVSySjuNai+e5Dt1jDBJwuoMPiaoruPJ3xnwx+6vRizilFsrZJx3UBrkd1WHm6nmPcaE9kp5D+kKa0KosgtNnuHtp0N/Kn0ZCB9k7j3Giy2B7F9ob91RxZtn6Pv2pWh9y34d0tmi7ARzIGcZ7wOw+oirq56aySIFKMdwcMdWD2EZBKn21mbCJUbLxsR3Aj5VOuOKqBiOJV8XJY/uor5loZGuS0tuks65CxkqQcrnbHMnHdQLWW4mkZkjOyl2SPLEgAktyAG1VdpfFZFkEqh1OVBB09xBABBBBIIPYa0sXFLvS+jqo0k+ksIATlg4Xnv66yki0PUaeGDTpogCKYXcIMKJH0L69Kqcn21ZJ0+7GjKL9mMYJ9bHeqIcGeUjOnbYBRgD2c/fRv9CMG04LYxnGNvWKSVrdj/8AKlwjS2HSK3dsjrEB+kMsc+scq0EHGrUjSGl9wQe/n8KyXDeHwr+cTH6pHvrT8N4bbk5TGe4H/wCOalKUfAjnOfclRyIeUjeo4Px7aOkbd7Y9QzUtbQAch7Mim+bgfUH+fXU9aZlqX9fwR+sIO/xUiu9bnnp94qYrEfVPvFMkiVuafAVtS+2mNv2r8mgUZ8Pcf8aeaE1pH6vUSK4sOOTGs68mUn4DBqcG8KYqGnqKUspj1YUZHHeKHGvjUgLS2LJ/IafZTlHhXMV0Z8PfRsFsJnwrmoUxmP8Ak/4UzrD3UKQykw1FSJj/ANs1GWXwNWVkursI94rmzT0jylSsZ1D9y+1P8KVWeg+PvNKufU/H0OfrGEhvYzzNSfybDsIOx9VVnUp3V0Ko5E16LjF8WTt9zP8AG4LLBEXUas+kGmK/DIwazV/Z6ckiPPZofV++txxaxEi+ikRP25B6Q9RArF8T4aIydUsfioJOD7q6MZKRTSP4UNmFK5XT9YVHSXv3roREOrCjLKRsMn21GcEckHxNBKN27UbNuXFvAz9hHt/wq4tOFj64yO7OB8BWes52ixtn1tj91aLh3EJXHoxBvU4+VLJlYMvbTo9AcFkXHersfgRVgODwD6OR7PkKBwoynaRCg7DrB+GKtwfEfGuWU1e50xhf9EWPhUfdn3inrw9V30+3make39tFRvUaynXDGcEuwCMAbA+windQM5McZ7QdIHxqRkdw+FPVqHU9iTh70Lztx9TPqNDa/I5xt7KkA13NLrh3h+oKmuJEVeJr2hh7KevEUPbRGQHmKA9qtFdJ9mbVlXLQUTg/WFFGPCoBth2EU3qyORptMezMm3yWNczUFWYUVJu+twOoX3JBTPd76aYm7Mj211XFFDCmWVolPF5I5V+81wF+81IaWmG4qiyS8IRQXkasj99GSRu0ULr6ekopJyf/AJO3Al5Cg+B9lS4EQ/XdT6s1FjfxqfaXIB+n78fvFednySXZnVNUtgnm3dOfca5VgtwPtj+j86VQ6j+0jk6k/v8Ao8s9OhlnzXFuj309b017vxLscHw+TjzkKdR2wc+qqOWOxb6wHqY/vq8nuxpOU1bH0RjJ8N6884qV1nRG6DuejFN8oEmorkdxC2jDkI+R2cjUaFivJj7KAGpytVVAl1ESjMx7TQDGf+9MZ801jQcA9RMkRRO2w39uasLDhzE8wp7MnFQ+HSSo2UUn2E1prC/lbAeI+sVmgqVl5w6zKAbk8vrNj3ZxVn52e1RVaFPY1O1t31N44vkosklwWgv17QRThexntPvqp6wnmKboB7KzwxCvUZPJeLcRn61ESZByqg6j10xoJByJrL08PIkvU5DSNeqO2gvxJO+s8esHMVzUe0U6wxQjySfJcyXy/aNM877nqpwO6nCIU2hGTotRdN3g09bw91VYg8acEI7aV40yiyUXC3YPOiq6mqVZCO2iLdVN4ZdiqzQ7l0sKntpwtz2NVOL3xpwvj30VjyeRZTxsturYdtdzVR583fXfP2rPHMMJwLcYpwQVVJfGpCXQqUoSR6GGUGT1Xxoiwk8iPfUSOUGjKme2uXJqXf6HdFbbEoW8nh+IUqELZvtfGlUtXuvyB+KMCZKY0tRFkzXNW9e7pPltRK63xoMkme4+uo8jfvqHJIew0yjYjkVV+qlyQpXffu9lRzH41ayyHtoOtfsijo9wWV2imNzq1KJ9mmG3jJ5Gg4WFOi24ET1Q2J8T+7wq3RT3YqmsZxGuFBxz3qfHf0dAuvcsVYijx3WOa5quS8o6XApHjKRzNcEzz1Psml50njUcODXCopekvcbrPwiWt2KkR3oqs0jvppj8azgga2XYu0PPFd66M91Z9oD2GgtE/Yan04+SiyPwaGRkqM8qjsqkPWDtNN66QUygvJnN+C1e6UUM361W+ct2iudcDzFOoxEc5ll58KXnINVu1LFNUQXMsDL3GmGVu+oWTThMaZUI77ksXDU9bs1FWeiCRazDG/JNjvKmw3a1UqVoqAVKcUzsw5ZxZoYJlNTUI76zMXrqfBKwrgyw8M9z0+XUt0XePGuVXic0q5dDOvSYeP5/srj12lXvHxhHn7PVUWWlSpoiSB5puN6VKnYqDlR3d9OiAzXKVIUJQFdUUqVAzC12lSooV8DwTTkNKlRZMIDTwaVKpsohymiqaVKpMqglcIpUqiy8QMiiozilSpomkDxREpUqsSDqK7pHdSpVkBg2AoRFdpVRCCFFQ0qVBjw5JMRqdCa7Srjyns+jJQNKlSrkPYP/2Q==",
+        threshold: 90,
+        rewardPoints: 15,
+      },
+      {
+        id: "nutrition",
+        name: "Nutrition Expert",
+        description: "Awarded for balanced and nutritious meals.",
+        img: "data:image/png;base64,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",
+        threshold: 100,
+        rewardPoints: 18,
+      },
+      {
+        id: "positivity",
+        name: "Positivity Pro",
+        description: "Awarded for maintaining a positive attitude.",
+        img: "data:image/png;base64,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",
+        threshold: 110,
+        rewardPoints: 20,
+      },
+      {
+        id: "community",
+        name: "Community Helper",
+        description: "Awarded for supporting others in their health journey.",
+        img: "data:image/jpeg;base64,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",
+        threshold: 120,
+        rewardPoints: 25,
+      },
+    ];
+
+    // Save/load user data to localStorage
+    function saveUserData() {
+      localStorage.setItem("patientWellnessUser", JSON.stringify(userData));
+    }
+    function loadUserData() {
+      const data = localStorage.getItem("patientWellnessUser");
+      if (data) {
+        userData = JSON.parse(data);
+      }
+    }
+
+    // Update reward counter UI
+    function updateRewardUI() {
+      pointsDisplay.textContent = `Points: ${userData.points}`;
+      badgesDisplay.innerHTML = "";
+      userData.badges.forEach((badgeId) => {
+        const badge = badges.concat(additionalBadges).find((b) => b.id === badgeId);
+        if (badge) {
+          const img = document.createElement("img");
+          img.src = badge.img;
+          img.alt = badge.name;
+          img.title = badge.name;
+          img.className = "w-6 h-6 rounded-full shadow-md";
+          badgesDisplay.appendChild(img);
+        }
+      });
+      rewardCounter.setAttribute("aria-label", `You have ${userData.points} points and ${userData.badges.length} badges`);
+    }
+
+    // Show badge popup
+    function showBadgePopup(badge) {
+      badgePopupImg.src = badge.img;
+      badgePopupImg.alt = badge.name;
+      badgePopupText.textContent = `Congrats! You earned the "${badge.name}" badge!`;
+      badgePopup.classList.add("show");
+      badgePopup.setAttribute("aria-hidden", "false");
+      badgePopup.focus();
+      setTimeout(() => {
+        badgePopup.classList.remove("show");
+        badgePopup.setAttribute("aria-hidden", "true");
+      }, 5000);
+    }
+
+    // Award points and badges
+    function awardPoints(points, source = "general") {
+      userData.points += points;
+      userData.pointsHistory = userData.pointsHistory || [];
+      userData.pointsHistory.push({ points, source, date: new Date().toISOString() });
+      // Check badges
+      badges.concat(additionalBadges).forEach((badge) => {
+        if (
+          userData.points >= badge.threshold &&
+          !userData.badges.includes(badge.id)
+        ) {
+          userData.badges.push(badge.id);
+          showBadgePopup(badge);
+        }
+      });
+      saveUserData();
+      updateRewardUI();
+      renderBadges();
+      renderAdditionalBadges();
+      // Also update backend users data
+      let users = JSON.parse(localStorage.getItem("patientWellnessUsers") || "{}");
+      if (userData.username && users[userData.username]) {
+        users[userData.username].points = userData.points;
+        users[userData.username].badges = userData.badges;
+        localStorage.setItem("patientWellnessUsers", JSON.stringify(users));
+      }
+    }
+
+    // Deduct points for games
+    function deductPoints(points) {
+      if (userData.points >= points) {
+        userData.points -= points;
+        userData.pointsHistory.push({ points: -points, source: "game play", date: new Date().toISOString() });
+        saveUserData();
+        updateRewardUI();
+        return true;
+      }
+      return false;
+    }
+
+    // Authentication logic (mock)
+    authForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      authError.textContent = "";
+      const username = emailInput.value.trim();
+      const password = passwordInput.value.trim();
+
+      if (username !== "Bug Bashers" || password !== "1234") {
+        authError.textContent = "Invalid username or password.";
+        return;
+      }
+
+      let users = JSON.parse(localStorage.getItem("patientWellnessUsers") || "{}");
+
+      if (!users[username]) {
+        users[username] = { password, points: 0, badges: [], pointsHistory: [] };
+        localStorage.setItem("patientWellnessUsers", JSON.stringify(users));
+      }
+      if (users[username].password !== password) {
+        authError.textContent = "Invalid username or password.";
+        return;
+      }
+      userData = {
+        points: users[username].points || 0,
+        badges: users[username].badges || [],
+        username: username,
+        loggedIn: true,
+        pointsHistory: users[username].pointsHistory || [],
+      };
+      saveUserData();
+      closeAuth();
+    });
+
+    forgotPasswordBtn.addEventListener("click", () => {
+      alert("Please contact your healthcare provider or system administrator to reset your password.");
+    });
+
+    function closeAuth() {
+      authPage.style.display = "none";
+      mainHeader.style.display = "flex";
+      appMain.style.display = "block";
+      mainHeader.setAttribute("aria-hidden", "false");
+      appMain.setAttribute("aria-hidden", "false");
+      appMain.focus();
+      updateRewardUI();
+      renderBadges();
+      renderAdditionalBadges();
+      startBotAutoMessages();
+    }
+
+    // Tabs navigation with ARIA roles and keyboard support
+    function activateTab(tabName, setFocus = true) {
+      tabContents.forEach((section) => {
+        const isActive = section.id === tabName;
+        section.classList.toggle("hidden", !isActive);
+        section.setAttribute("aria-hidden", !isActive);
+        if (isActive && setFocus) {
+          section.focus();
+        }
+      });
+      tabs.forEach((btn) => {
+        const isSelected = btn.dataset.tab === tabName;
+        btn.classList.toggle("bg-indigo-100", isSelected);
+        btn.classList.toggle("text-indigo-900", isSelected);
+        btn.setAttribute("aria-selected", isSelected);
+        btn.tabIndex = isSelected ? 0 : -1;
+      });
+      if (mobileMenu.classList.contains("block")) {
+        mobileMenu.classList.add("hidden");
+        mobileMenu.classList.remove("block");
+        mobileMenuBtn.setAttribute("aria-expanded", "false");
+      }
+    }
+    tabs.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        activateTab(btn.dataset.tab);
+      });
+      btn.addEventListener("keydown", (e) => {
+        let index = Array.from(tabs).indexOf(e.target);
+        if (e.key === "ArrowRight") {
+          e.preventDefault();
+          let nextIndex = (index + 1) % tabs.length;
+          tabs[nextIndex].focus();
+        } else if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          let prevIndex = (index - 1 + tabs.length) % tabs.length;
+          tabs[prevIndex].focus();
+        } else if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          activateTab(e.target.dataset.tab);
+        }
+      });
+    });
+    mobileMenuBtn.addEventListener("click", () => {
+      if (mobileMenu.classList.contains("hidden")) {
+        mobileMenu.classList.remove("hidden");
+        mobileMenu.classList.add("block");
+        mobileMenuBtn.setAttribute("aria-expanded", "true");
+      } else {
+        mobileMenu.classList.add("hidden");
+        mobileMenu.classList.remove("block");
+        mobileMenuBtn.setAttribute("aria-expanded", "false");
+      }
+    });
+
+    // Activate default tab
+    activateTab("bot", false);
+
+    // Health Assistant Bot Logic with improved AI-like responses
+    const chatWindow = document.getElementById("chat-window");
+    const chatForm = document.getElementById("chat-form");
+    const chatInput = document.getElementById("chat-input");
+
+    // Bot auto messages for engagement
+    const botAutoMessages = [
+      "Hello! Hope you're having a wonderful day! Remember, your health is your wealth.",
+      "Why did the tomato turn red? Because it saw the salad dressing! 😄",
+      "Here's a lullaby for you: 🎵 Twinkle, twinkle, little star, healing wishes from afar... 🎵",
+      "Keep smiling! A positive mind helps healing faster.",
+      "Remember to take deep breaths and relax your body.",
+      "Did you know? Drinking water helps your body heal and stay energized.",
+    ];
+    let botAutoIndex = 0;
+    let botAutoInterval;
+
+    // Sample reminders and healthy tips for demo
+    const reminders = [
+      { time: "14:00", message: "Take your blood pressure medication." },
+      { time: "18:00", message: "Time for your evening walk." },
+    ];
+    const healthyTips = [
+      "Drink at least 8 glasses of water daily.",
+      "Take short breaks and stretch during work.",
+      "Eat a balanced diet rich in fruits and vegetables.",
+      "Practice deep breathing exercises to reduce stress.",
+      "Get at least 7-8 hours of sleep every night.",
+    ];
+
+    // Improved AI-like response using keyword matching and context
+    function botResponse(userText) {
+      const text = userText.toLowerCase();
+
+      if (text.match(/\b(hello|hi|hey|greetings|good morning|good afternoon|good evening)\b/)) {
+        const now = new Date();
+        const hour = now.getHours();
+        let greeting = "Hello!";
+        if (hour < 12) greeting = "Good morning!";
+        else if (hour < 18) greeting = "Good afternoon!";
+        else greeting = "Good evening!";
+        appendMessage(
+          "bot",
+          `${greeting} How can I assist you today? You can ask me about your reminders, healthy habits, or anything else.`
+        );
+        awardPoints(2, "bot greeting");
+      } else if (text.match(/\b(reminder|medication|time|schedule)\b/)) {
+        let upcoming = reminders.filter((r) => {
+          const now = new Date();
+          const [h, m] = r.time.split(":").map(Number);
+          const reminderDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+          return reminderDate > now;
+        });
+        if (upcoming.length === 0) {
+          appendMessage("bot", "You have no more reminders for today. Great job staying on track!");
+          awardPoints(5, "bot reminder");
+        } else {
+          let nextReminder = upcoming[0];
+          appendMessage("bot", `Your next reminder is at ${nextReminder.time}: ${nextReminder.message}`);
+          awardPoints(1, "bot reminder");
+        }
+      } else if (text.match(/\b(healthy habit|tip|advice|suggestion)\b/)) {
+        const tip = healthyTips[Math.floor(Math.random() * healthyTips.length)];
+        appendMessage("bot", `Here's a healthy habit tip: ${tip}`);
+        awardPoints(3, "bot tip");
+      } else if (text.match(/\b(thank|thanks|thank you)\b/)) {
+        appendMessage("bot", "You're welcome! Stay healthy and positive!");
+        awardPoints(1, "bot thanks");
+      } else if (text.match(/\b(joke|funny|laugh)\b/)) {
+        const jokes = [
+          "Why don't scientists trust atoms? Because they make up everything!",
+          "Why did the bicycle fall over? Because it was two-tired!",
+          "What do you call fake spaghetti? An impasta!",
+        ];
+        appendMessage("bot", jokes[Math.floor(Math.random() * jokes.length)]);
+        awardPoints(2, "bot joke");
+      } else if (text.match(/\b(lullaby|song|music)\b/)) {
+        appendMessage("bot", "🎵 Hush little baby, don't say a word, Mama's gonna buy you a mockingbird... 🎵");
+        awardPoints(2, "bot lullaby");
+      } else if (text.match(/\b(help|support|assist|question)\b/)) {
+        appendMessage("bot", "I'm here to help! You can ask me about your health reminders, exercises, or stress relief games.");
+      } else {
+        appendMessage(
+          "bot",
+          "I'm sorry, I didn't understand that. You can ask me about your reminders, healthy habits, or say hello!"
+        );
+      }
+    }
+
+    function appendMessage(sender, text) {
+      const msgWrapper = document.createElement("div");
+      msgWrapper.className = `chat-message ${sender}`;
+      msgWrapper.setAttribute("role", "article");
+      msgWrapper.setAttribute("aria-label", sender === "bot" ? "Doctor Cat Bot message" : "User message");
+
+      if (sender === "bot") {
+        const avatar = document.createElement("img");
+        avatar.src = "https://placehold.co/56x56/png?text=3D+cat+doctor+avatar+with+stethoscope+and+friendly+expression+soft+purple-blue+lighting";
+        avatar.alt = "3D stylized cat doctor avatar with stethoscope, friendly expression, and soft purple-blue lighting";
+        avatar.className = "cat-avatar";
+        msgWrapper.appendChild(avatar);
+      }
+
+      const bubble = document.createElement("div");
+      bubble.className = `chat-bubble ${sender}`;
+      bubble.textContent = text;
+      msgWrapper.appendChild(bubble);
+
+      chatWindow.appendChild(msgWrapper);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    chatForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const userText = chatInput.value.trim();
+      if (!userText) return;
+      appendMessage("user", userText);
+      chatInput.value = "";
+      setTimeout(() => botResponse(userText), 700);
+    });
+
+    // Bot auto message interval
+    function startBotAutoMessages() {
+      if (botAutoInterval) clearInterval(botAutoInterval);
+      botAutoInterval = setInterval(() => {
+        appendMessage("bot", botAutoMessages[botAutoIndex]);
+        botAutoIndex = (botAutoIndex + 1) % botAutoMessages.length;
+      }, 45000); // every 45 seconds
+    }
+
+    // Explore Hospital modal logic with 360 views
+    const hospitalModal = document.getElementById("hospital-modal");
+    const hospitalModalContent = document.getElementById("hospital-modal-content");
+    const hospitalModalTitle = document.getElementById("hospital-modal-title");
+    const hospitalModalIframe = document.getElementById("hospital-modal-iframe");
+    const hospitalModalDesc = document.getElementById("hospital-modal-desc");
+    const hospitalModalClose = document.getElementById("hospital-modal-close");
+
+    const hospitalDetails = {
+      lobby: {
+        title: "Lobby & Reception",
+        iframeSrc: "https://hmcarchitects.com/wp-content/uploads/1.jpeg-9-1280x713.jpg",
+        desc: "Welcome area with comfortable seating and information desk. Friendly staff ready to assist you.",
+      },
+      wards: {
+        title: "Patient Wards",
+        iframeSrc: "https://dm1zcrsul8wju.cloudfront.net/sites/rcn_nspace/files/styles/full_width_banner/public/Number_of_patients_on_mixed_sex_NHS_wards_on_the_rise_tile_Alamy-C8MPE1_0.jpg?itok=R9is70Gw",
+        desc: "Rooms where patients receive care and rest in a comfortable and safe environment.",
+      },
+      physiotherapy: {
+        title: "Physiotherapy Room",
+        iframeSrc: "https://media.istockphoto.com/id/498715206/photo/physical-therapy-room.jpg?s=612x612&w=0&k=20&c=nK0rMKD9oCk7nPi_OR9FrHJ4USzdy79kTxhczBaE-wE=",
+        desc: "Area for physical therapy and rehabilitation exercises with expert therapists.",
+      },
+      cafeteria: {
+        title: "Cafeteria",
+        iframeSrc: "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/16/90/ee/67/ambiente-charmoso-e-aconchegan.jpg?w=900&h=500&s=1",
+        desc: "Healthy meals and snacks for patients and visitors, promoting nutrition and wellness.",
+      },
+      garden: {
+        title: "Garden & Outdoor Area",
+        iframeSrc: "https://media.biltrax.com/wp-content/uploads/2022/02/theraputic-garden-1.jpg",
+        desc: "Relaxing outdoor space for fresh air, walks, and connecting with nature.",
+      },
+      pharmacy: {
+        title: "Pharmacy",
+        iframeSrc: "https://www.kistmcth.edu.np/uploads/service/1693973243.jpg",
+        desc: "Medication dispensing and consultation area with professional pharmacists.",
+      },
+    };
+
+    document.querySelectorAll('[data-area]').forEach((el) => {
+      el.addEventListener("click", () => {
+        const area = el.getAttribute("data-area");
+        if (hospitalDetails[area]) {
+          hospitalModalTitle.textContent = hospitalDetails[area].title;
+          hospitalModalIframe.src = hospitalDetails[area].iframeSrc;
+          hospitalModalDesc.textContent = hospitalDetails[area].desc;
+          hospitalModal.classList.add("active");
+          hospitalModal.focus();
+        }
+      });
+      el.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          el.click();
+        }
+      });
+    });
+
+    hospitalModalClose.addEventListener("click", () => {
+      hospitalModal.classList.remove("active");
+      hospitalModalIframe.src = "";
+    });
+    hospitalModal.addEventListener("click", (e) => {
+      if (e.target === hospitalModal) {
+        hospitalModal.classList.remove("active");
+        hospitalModalIframe.src = "";
+      }
+    });
+    hospitalModal.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        hospitalModal.classList.remove("active");
+        hospitalModalIframe.src = "";
+      }
+    });
+
+    // Stress Busting Games Logic with points deduction and full functionality
+
+    // Breathing Exercise
+    const startBreathingBtn = document.getElementById("start-breathing");
+    const breathingInstruction = document.getElementById("breathing-instruction");
+    let breathingInterval;
+    let breathingStep = 0;
+    const breathingSteps = [
+      "Breathe in... (4 seconds)",
+      "Hold your breath... (7 seconds)",
+      "Breathe out... (8 seconds)",
+    ];
+    const breathingCost = 5;
+
+    startBreathingBtn.addEventListener("click", () => {
+      if (breathingInterval) {
+        clearInterval(breathingInterval);
+        breathingInterval = null;
+        breathingInstruction.textContent = "Exercise stopped.";
+        startBreathingBtn.textContent = "Start Exercise";
+        startBreathingBtn.setAttribute("aria-pressed", "false");
+        awardPoints(5, "breathing exercise");
+        return;
+      }
+      if (!deductPoints(breathingCost)) {
+        alert(`You need at least ${breathingCost} points to play this game.`);
+        return;
+      }
+      breathingStep = 0;
+      breathingInstruction.textContent = breathingSteps[breathingStep];
+      startBreathingBtn.textContent = "Stop Exercise";
+      startBreathingBtn.setAttribute("aria-pressed", "true");
+      breathingInterval = setInterval(() => {
+        breathingStep = (breathingStep + 1) % breathingSteps.length;
+        breathingInstruction.textContent = breathingSteps[breathingStep];
+      }, 8000);
+    });
+
+    // Color Matching Game
+    const startColorMatchBtn = document.getElementById("start-color-match");
+    const colorMatchingGame = document.getElementById("color-matching-game");
+    const colorMatchFeedback = document.getElementById("color-match-feedback");
+    const colorMatchCost = 7;
+
+    const colors = ["red", "green", "blue", "yellow", "purple", "orange"];
+    let targetColor = "";
+    let gameActive = false;
+
+    function generateColorSquares() {
+      colorMatchingGame.innerHTML = "";
+      const shuffledColors = colors.sort(() => 0.5 - Math.random());
+      targetColor = shuffledColors[0];
+      colorMatchFeedback.textContent = `Find and click the color: ${targetColor.toUpperCase()}`;
+      shuffledColors.forEach((color) => {
+        const square = document.createElement("button");
+        square.className = `color-square w-16 h-16 focus-visible:ring-4 focus-visible:ring-indigo-500`;
+        square.style.backgroundColor = color;
+        square.setAttribute("aria-label", `Color square ${color}`);
+        square.setAttribute("tabindex", "0");
+        square.addEventListener("click", () => {
+          if (!gameActive) return;
+          if (color === targetColor) {
+            colorMatchFeedback.textContent = "Correct! Well done!";
+            awardPoints(10, "color matching");
+            gameActive = false;
+            startColorMatchBtn.textContent = "Start Game";
+            startColorMatchBtn.setAttribute("aria-pressed", "false");
+          } else {
+            colorMatchFeedback.textContent = "Try again!";
+          }
+        });
+        colorMatchingGame.appendChild(square);
+      });
+    }
+
+    startColorMatchBtn.addEventListener("click", () => {
+      if (gameActive) {
+        gameActive = false;
+        colorMatchFeedback.textContent = "Game stopped.";
+        startColorMatchBtn.textContent = "Start Game";
+        startColorMatchBtn.setAttribute("aria-pressed", "false");
+        colorMatchingGame.innerHTML = "";
+      } else {
+        if (!deductPoints(colorMatchCost)) {
+          alert(`You need at least ${colorMatchCost} points to play this game.`);
+          return;
+        }
+        gameActive = true;
+        generateColorSquares();
+        startColorMatchBtn.textContent = "Stop Game";
+        startColorMatchBtn.setAttribute("aria-pressed", "true");
+      }
+    });
+
+    // Mindful Coloring Game
+    const startColoringBtn = document.getElementById("start-coloring");
+    const coloringFeedback = document.getElementById("coloring-feedback");
+    const coloringCost = 6;
+    startColoringBtn?.addEventListener("click", () => {
+      if (!deductPoints(coloringCost)) {
+        alert(`You need at least ${coloringCost} points to play this game.`);
+        return;
+      }
+      coloringFeedback.textContent = "Enjoy your mindful coloring session!";
+      awardPoints(8, "mindful coloring");
+    });
+
+    // Guided Meditation Game
+    const startMeditationBtn = document.getElementById("start-meditation");
+    const meditationFeedback = document.getElementById("meditation-feedback");
+    const meditationCost = 8;
+    startMeditationBtn?.addEventListener("click", () => {
+      if (!deductPoints(meditationCost)) {
+        alert(`You need at least ${meditationCost} points to play this game.`);
+        return;
+      }
+      meditationFeedback.textContent = "Starting guided meditation. Relax and breathe deeply.";
+      awardPoints(10, "guided meditation");
+    });
+
+    // Positive Affirmations Game
+    const startAffirmationsBtn = document.getElementById("start-affirmations");
+    const affirmationsFeedback = document.getElementById("affirmations-feedback");
+    const affirmationsCost = 5;
+    startAffirmationsBtn?.addEventListener("click", () => {
+      if (!deductPoints(affirmationsCost)) {
+        alert(`You need at least ${affirmationsCost} points to play this game.`);
+        return;
+      }
+      affirmationsFeedback.textContent = "Repeat positive affirmations to boost your mood!";
+      awardPoints(7, "positive affirmations");
+    });
+
+    // Visualization Exercise Game
+    const startVisualizationBtn = document.getElementById("start-visualization");
+    const visualizationFeedback = document.getElementById("visualization-feedback");
+    const visualizationCost = 6;
+    startVisualizationBtn?.addEventListener("click", () => {
+      if (!deductPoints(visualizationCost)) {
+        alert(`You need at least ${visualizationCost} points to play this game.`);
+        return;
+      }
+      visualizationFeedback.textContent = "Visualize peaceful scenes to reduce stress.";
+      awardPoints(8, "visualization exercise");
+    });
+
+    // Gratitude Journal Game
+    const startGratitudeBtn = document.getElementById("start-gratitude");
+    const gratitudeFeedback = document.getElementById("gratitude-feedback");
+    const gratitudeCost = 4;
+    startGratitudeBtn?.addEventListener("click", () => {
+      if (!deductPoints(gratitudeCost)) {
+        alert(`You need at least ${gratitudeCost} points to play this game.`);
+        return;
+      }
+      gratitudeFeedback.textContent = "Write down things you are grateful for today.";
+      awardPoints(6, "gratitude journal");
+    });
+
+    // Exercise & Motivation - Physiotherapy exercise click to play music and show gif
+    const physiotherapyExercises = document.querySelectorAll(".exercise-item");
+    physiotherapyExercises.forEach((item) => {
+      item.addEventListener("click", () => {
+        const audio = item.querySelector("audio");
+        if (audio) {
+          audio.currentTime = 0;
+          audio.play();
+        }
+        // Scroll gif into view smoothly
+        const gif = item.querySelector(".exercise-gif");
+        if (gif) {
+          gif.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      });
+      item.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          item.click();
+        }
+      });
+    });
+
+    // Short stories modal logic
+    const storyModal = document.getElementById("story-modal");
+    const storyModalContent = document.getElementById("story-modal-content");
+    const storyModalTitle = document.getElementById("story-modal-title");
+    const storyModalImg = document.getElementById("story-modal-img");
+    const storyModalDesc = document.getElementById("story-modal-desc");
+    const storyModalClose = document.getElementById("story-modal-close");
+
+    const stories = {
+      story1: {
+        title: "Healing in Nature",
+        img: "https://placehold.co/700x400/png?text=Healing+in+Nature",
+        text: `Once upon a time, a patient found strength in nature's calm embrace. The gentle rustling of leaves and the soft sunlight helped soothe the mind and body, aiding in the healing process.
+
+Spending time outdoors and connecting with nature can significantly improve mental and physical health. The patient learned to appreciate the small moments of peace and tranquility, which contributed to their overall well-being.`,
+      },
+      story2: {
+        title: "New Beginnings",
+        img: "https://placehold.co/700x400/png?text=New+Beginnings",
+        text: `Every day is a new beginning, filled with hope and healing. Embracing each morning with positivity can lead to a healthier and happier life.
+
+The patient started each day with a positive mindset, focusing on the progress made rather than setbacks. This attitude helped them stay motivated and committed to their health journey.`,
+      },
+      story3: {
+        title: "The Ocean's Rhythm",
+        img: "https://placehold.co/700x400/png?text=The+Ocean's+Rhythm",
+        text: `Like the ocean waves, healing comes in gentle, steady rhythms. Patience and care are essential companions on the journey to wellness.
+
+The patient learned to be patient with themselves, understanding that healing is a process that takes time. They found comfort in the steady rhythm of the ocean, reminding them to keep moving forward.`,
+      },
+    };
+
+    document.querySelectorAll(".story-card").forEach((card) => {
+      card.addEventListener("click", () => {
+        const storyId = card.getAttribute("data-story");
+        if (stories[storyId]) {
+          storyModalTitle.textContent = stories[storyId].title;
+          storyModalImg.src = stories[storyId].img;
+          storyModalImg.alt = stories[storyId].title;
+          storyModalDesc.textContent = stories[storyId].text;
+          storyModal.classList.add("active");
+          storyModal.focus();
+        }
+      });
+      card.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          card.click();
+        }
+      });
+    });
+
+    storyModalClose.addEventListener("click", () => {
+      storyModal.classList.remove("active");
+    });
+    storyModal.addEventListener("click", (e) => {
+      if (e.target === storyModal) {
+        storyModal.classList.remove("active");
+      }
+    });
+    storyModal.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        storyModal.classList.remove("active");
+      }
+    });
+
+    // Mood music player logic
+    const moodSelect = document.getElementById("mood-select");
+    const mediaContainer = document.getElementById("media-container");
+
+    const moodMedia = {
+      calm: {
+        music: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+        story: "Once upon a time, in a peaceful forest, the gentle breeze whispered through the trees...",
+        storyImg: "https://placehold.co/350x200/png?text=Calm+Forest",
+      },
+      happy: {
+        music: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+        story: "Today is a bright and sunny day, full of laughter and joy...",
+        storyImg: "https://placehold.co/350x200/png?text=Sunny+Day",
+      },
+      motivated: {
+        music: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+        story: "You have the strength within you to overcome any challenge...",
+        storyImg: "https://placehold.co/350x200/png?text=Motivation",
+      },
+      relaxed: {
+        music: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
+        story: "Close your eyes and imagine a calm beach with gentle waves...",
+        storyImg: "https://placehold.co/350x200/png?text=Calm+Beach",
+      },
+      sleepy: {
+        music: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
+        story: "As the stars twinkle above, let your mind drift into a restful sleep...",
+        storyImg: "https://placehold.co/350x200/png?text=Starry+Night",
+      },
+    };
+
+    let currentAudio = null;
+
+    moodSelect.addEventListener("change", () => {
+      const mood = moodSelect.value;
+      mediaContainer.innerHTML = "";
+      if (!mood || !moodMedia[mood]) {
+        mediaContainer.textContent = "Select a mood to get music and stories.";
+        if (currentAudio) {
+          currentAudio.pause();
+          currentAudio = null;
+        }
+        return;
+      }
+      const { music, story, storyImg } = moodMedia[mood];
+
+      // Create audio player
+      const audio = document.createElement("audio");
+      audio.controls = true;
+      audio.src = music;
+      audio.setAttribute("aria-label", `${mood} mood music player`);
+      audio.className = "w-full mb-6 rounded-3xl shadow-lg";
+      mediaContainer.appendChild(audio);
+      currentAudio = audio;
+
+      // Create story image clickable
+      const storyImage = document.createElement("img");
+      storyImage.src = storyImg;
+      storyImage.alt = `${mood} mood story image`;
+      storyImage.className = "mb-4 rounded-3xl shadow-lg cursor-pointer max-w-full";
+      mediaContainer.appendChild(storyImage);
+
+      // Create story paragraph
+      const storyPara = document.createElement("p");
+      storyPara.textContent = story;
+      storyPara.className = "text-indigo-900 font-semibold text-lg leading-relaxed";
+      mediaContainer.appendChild(storyPara);
+
+      // Story modal for full story
+      storyImage.addEventListener("click", () => {
+        storyModalTitle.textContent = `${mood.charAt(0).toUpperCase() + mood.slice(1)} Mood Story`;
+        storyModalImg.src = storyImg;
+        storyModalImg.alt = `${mood} mood story image`;
+        storyModalDesc.textContent = story;
+        storyModal.classList.add("active");
+        storyModal.focus();
+      });
+    });
+
+    // Self Quiz Logic
+    const quizForm = document.getElementById("quiz-form");
+    const quizResult = document.getElementById("quiz-result");
+    const quizRecommendations = document.getElementById("quiz-recommendations");
+
+    quizForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const formData = new FormData(quizForm);
+      const answers = {
+        q1: formData.get("q1"),
+        q2: formData.get("q2"),
+        q3: formData.get("q3"),
+        q4: formData.get("q4"),
+        q5: formData.get("q5"),
+      };
+
+      let score = 0;
+
+      if (answers.q1 === "always") score += 2;
+      else if (answers.q1 === "often") score += 1;
+
+      if (answers.q2 === "excellent") score += 2;
+      else if (answers.q2 === "good") score += 1;
+
+      if (answers.q3 === "always") score += 2;
+      else if (answers.q3 === "often") score += 1;
+
+      if (answers.q4 === "daily") score += 2;
+      else if (answers.q4 === "several_times_week") score += 1;
+
+      if (
+        answers.q5 === "happy" ||
+        answers.q5 === "calm" ||
+        answers.q5 === "motivated"
+      )
+        score += 2;
+
+      let message = "";
+      let recommendations = "";
+
+      if (score >= 8) {
+        message =
+          "Excellent! You are managing your health very well. Keep it up!";
+        recommendations =
+          "Maintain your good habits and continue regular check-ins with your healthcare provider.";
+        awardPoints(15, "self quiz");
+      } else if (score >= 5) {
+        message = "Good job! There is some room for improvement. Stay motivated!";
+        recommendations =
+          "Try to improve medication adherence and increase exercise frequency. Consider consulting your healthcare provider for personalized advice.";
+        awardPoints(8, "self quiz");
+      } else {
+        message =
+          "It seems you might need some extra support. Consider talking to your healthcare provider.";
+        recommendations =
+          "Focus on consistent medication, diet, and exercise. Reach out to your healthcare team for support and guidance.";
+        awardPoints(3, "self quiz");
+      }
+
+      quizResult.textContent = message;
+      quizResult.classList.remove("hidden");
+      quizResult.focus();
+
+      quizRecommendations.textContent = recommendations;
+      quizRecommendations.classList.remove("hidden");
+      quizRecommendations.focus();
+    });
+
+    // Update badges container dynamically
+    const badgesContainer = document.getElementById("badges-container");
+    function renderBadges() {
+      badgesContainer.innerHTML = "";
+      badges.forEach((badge) => {
+        const earned = userData.badges.includes(badge.id);
+        const card = document.createElement("article");
+        card.className = `badge-card bg-gradient-to-tr from-indigo-100 to-purple-100 rounded-3xl p-8 flex flex-col items-center shadow-lg transition-transform duration-300 cursor-pointer focus-visible:ring-4 focus-visible:ring-indigo-400 ${
+          earned ? "pulse" : "opacity-50 grayscale"
+        }`;
+        card.setAttribute("role", "button");
+        card.setAttribute("tabindex", "0");
+        card.setAttribute("aria-label", `${badge.name} badge ${earned ? "earned" : "not earned"}`);
+        card.title = earned ? `${badge.name} (earned)` : `${badge.name} (click to earn ${badge.rewardPoints} points)`;
+
+        const img = document.createElement("img");
+        img.src = badge.img;
+        img.alt = badge.name;
+        img.className = "mb-5 w-24 h-24 object-contain";
+        card.appendChild(img);
+
+        const h3 = document.createElement("h3");
+        h3.className = "font-extrabold text-indigo-700 text-xl mb-2 text-center";
+        h3.textContent = badge.name;
+        card.appendChild(h3);
+
+        const p = document.createElement("p");
+        p.className = "text-indigo-900 text-center text-lg leading-relaxed";
+        p.textContent = badge.description;
+        card.appendChild(p);
+
+        if (!earned) {
+          card.addEventListener("click", () => {
+            awardPoints(badge.rewardPoints, "badge click");
+            alert(`You earned ${badge.rewardPoints} points for clicking "${badge.name}"! Keep going!`);
+          });
+          card.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              awardPoints(badge.rewardPoints, "badge click");
+              alert(`You earned ${badge.rewardPoints} points for clicking "${badge.name}"! Keep going!`);
+            }
+          });
+        }
+
+        badgesContainer.appendChild(card);
+      });
+    }
+
+    // Render additional badges
+    const additionalBadgesContainer = document.getElementById("additional-badges-container");
+    function renderAdditionalBadges() {
+      additionalBadgesContainer.innerHTML = "";
+      additionalBadges.forEach((badge) => {
+        const earned = userData.badges.includes(badge.id);
+        const card = document.createElement("article");
+        card.className = `badge-card bg-gradient-to-tr from-indigo-100 to-purple-100 rounded-3xl p-8 flex flex-col items-center shadow-lg transition-transform duration-300 cursor-pointer focus-visible:ring-4 focus-visible:ring-indigo-400 ${
+          earned ? "pulse" : "opacity-50 grayscale"
+        }`;
+        card.setAttribute("role", "button");
+        card.setAttribute("tabindex", "0");
+        card.setAttribute("aria-label", `${badge.name} badge ${earned ? "earned" : "not earned"}`);
+        card.title = earned ? `${badge.name} (earned)` : `${badge.name} (click to earn ${badge.rewardPoints} points)`;
+
+        const img = document.createElement("img");
+        img.src = badge.img;
+        img.alt = badge.name;
+        img.className = "mb-5 w-24 h-24 object-contain";
+        card.appendChild(img);
+
+        const h3 = document.createElement("h3");
+        h3.className = "font-extrabold text-indigo-700 text-xl mb-2 text-center";
+        h3.textContent = badge.name;
+        card.appendChild(h3);
+
+        const p = document.createElement("p");
+        p.className = "text-indigo-900 text-center text-lg leading-relaxed";
+        p.textContent = badge.description;
+        card.appendChild(p);
+
+        if (!earned) {
+          card.addEventListener("click", () => {
+            awardPoints(badge.rewardPoints, "badge click");
+            alert(`You earned ${badge.rewardPoints} points for clicking "${badge.name}"! Keep going!`);
+          });
+          card.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              awardPoints(badge.rewardPoints, "badge click");
+              alert(`You earned ${badge.rewardPoints} points for clicking "${badge.name}"! Keep going!`);
+            }
+          });
+        }
+
+        additionalBadgesContainer.appendChild(card);
+      });
+    }
+
+    // Points history modal
+    function showPointsHistory() {
+      const history = userData.pointsHistory || [];
+      if (history.length === 0) {
+        alert("No points history available.");
+        return;
+      }
+      let message = "Points History:\n\n";
+      history.slice(-10).reverse().forEach((entry, i) => {
+        const date = new Date(entry.date).toLocaleString();
+        message += `${i + 1}. ${entry.points > 0 ? "+" : ""}${entry.points} points (${entry.source}) on ${date}\n`;
+      });
+      alert(message);
+    }
+    rewardCounter.addEventListener("click", showPointsHistory);
+    rewardCounter.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        showPointsHistory();
+      }
+    });
+
+    // Load user data and initialize app
+    function initApp() {
+      loadUserData();
+      updateRewardUI();
+      renderBadges();
+      renderAdditionalBadges();
+      mainHeader.style.display = "flex";
+      appMain.style.display = "block";
+      mainHeader.setAttribute("aria-hidden", "false");
+      appMain.setAttribute("aria-hidden", "false");
+      authPage.style.display = "none";
+      appMain.focus();
+      startBotAutoMessages();
+    }
+
+    // On page load, check if user logged in
+    window.addEventListener("load", () => {
+      loadUserData();
+      if (userData.loggedIn) {
+        initApp();
+      } else {
+        mainHeader.style.display = "none";
+        appMain.style.display = "none";
+        authPage.style.display = "flex";
+        mainHeader.setAttribute("aria-hidden", "true");
+        appMain.setAttribute("aria-hidden", "true");
+        authPage.querySelector("#email").focus();
+      }
+    });
+  </script>
+</body>
+</html>
